@@ -27,6 +27,7 @@
 - Unsplash negotiated AVIF because the downloader advertised it before the supported formats, so valid web results were rejected by byte validation. Prefer PNG/JPEG/WebP in the request `Accept` header and keep the validator/cache format set consistent.
 - Unapproved visuals must come only from explicit concrete caregiver-spoken concepts returned in a separate structured field; hash those concepts for cache keys and cap the total requests per turn so transcript text is not stored and image calls do not grow without bound.
 - Tests that assert a specific asset search mode must pass `assetSearchMode` explicitly because the dotenv-loaded `.env.local` runtime setting can otherwise change their provider-call expectations.
+- Realtime may finalize “bath room” as aliases or separate items, and the resolver can emit local events before its result returns. Keep approved speech keywords plus the bounded two-second fragment seam, clear partial/context state at session boundaries, buffer asset events until classification is sent, and regression-test aliases, isolated fragments, and verified local assets.
 
 ## Repository workflow
 

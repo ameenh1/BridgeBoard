@@ -16,6 +16,16 @@ export type ApprovedVocabularyItem = {
   imagePath?: string;
 };
 
+export const BATHROOM_SPEECH_ALIASES = [
+  "bathroom",
+  "bath room",
+  "restroom",
+  "rest room",
+  "toilet",
+  "potty",
+  "washroom"
+] as const;
+
 /**
  * The initial allowlist is deliberately small. The classifier may return IDs
  * from this list, but never invent labels or arbitrary URLs for the board.
@@ -56,4 +66,14 @@ export function getAllowedVocabulary(
   vocabulary: readonly ApprovedVocabularyItem[] = APPROVED_VOCABULARY
 ): readonly ApprovedVocabularyItem[] {
   return vocabulary.filter((item) => item.allowedForAI !== false);
+}
+
+export function getApprovedVocabularySpeechKeywords(
+  vocabulary: readonly ApprovedVocabularyItem[] = APPROVED_VOCABULARY
+): string[] {
+  const values = getAllowedVocabulary(vocabulary).flatMap((item) => [item.label, ...item.tags]);
+  return [...new Set([...values, ...BATHROOM_SPEECH_ALIASES]
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0 && !/[<>\r\n]/u.test(value))
+  )].slice(0, 64);
 }

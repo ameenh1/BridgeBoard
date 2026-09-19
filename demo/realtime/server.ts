@@ -8,7 +8,9 @@ import {
   createSupabaseAssetCache,
   resolveVisualAssets
 } from "../../lib/server.js";
+import { getApprovedVocabularySpeechKeywords } from "../../data/approvedVocabulary.js";
 import { MemoryAssetCache } from "../../lib/assets/cache.js";
+import type { AssetResolutionEvent } from "../../lib/assets/types.js";
 
 const demoDirectory = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const publicDirectory = resolve(demoDirectory, "../../public");
@@ -41,12 +43,22 @@ async function serveStatic(pathname: string, response: ServerResponse): Promise<
 
   try {
     const contents = await readFile(filePath);
-    const contentType = filePath.endsWith(".html")
+    const extension = extname(filePath).toLowerCase();
+    const contentType = extension === ".html"
       ? "text/html; charset=utf-8"
-      : extname(filePath).toLowerCase() === ".svg"
+      : extension === ".svg"
         ? "image/svg+xml"
-        : "application/octet-stream";
-    response.writeHead(200, { "Content-Type": contentType });
+        : extension === ".png"
+          ? "image/png"
+          : extension === ".jpg" || extension === ".jpeg"
+            ? "image/jpeg"
+            : extension === ".webp"
+              ? "image/webp"
+              : "application/octet-stream";
+    response.writeHead(200, {
+      "Content-Type": contentType,
+      ...(filePath.endsWith(".html") ? { "Cache-Control": "no-store" } : {})
+    });
     response.end(contents);
   } catch {
     sendJson(response, 404, { error: "Not found" });
@@ -85,6 +97,8 @@ const server = createServer(async (request, response) => {
       const answer = await createOpenAIRealtimeTranscriptionSession({
         sdp,
         languages: ["en"],
+        keywords: getApprovedVocabularySpeechKeywords(),
+        prompt: "A caregiver is speaking short AAC choice questions and support phrases.",
         delay: "low"
       });
       response.writeHead(200, { "Content-Type": "application/sdp" });
@@ -109,21 +123,33 @@ const server = createServer(async (request, response) => {
       });
 
       const recentContext = Array.isArray(body.recentContext)
-        ? body.recentContext.filter((line): line is string => typeof line === "string").slice(-3)
+        ? body.recentContext.filter((line): line is string => typeof line === "string").slice(-2)
         : [];
+      const queuedEvents: AssetResolutionEvent[] = [];
+      let classificationSent = false;
       const result = await resolveVisualAssets({
         transcript: body.transcript,
         recentContext,
         localCache: demoLocalAssetCache,
         providers: createOpenAIAssetProviders(),
         sharedCache: createOptionalSharedCache(),
-        onEvent: (event) => writeNdjson(response, event)
+        onEvent: (event) => {
+          if (classificationSent) {
+            writeNdjson(response, event);
+          } else {
+            queuedEvents.push(event);
+          }
+        }
       });
       writeNdjson(response, {
         type: "classification",
         classification: result.classification,
         requests: result.requests
       });
+      classificationSent = true;
+      for (const event of queuedEvents) {
+        writeNdjson(response, event);
+      }
       await result.pending;
       writeNdjson(response, { type: "done" });
       response.end();

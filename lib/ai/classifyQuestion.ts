@@ -6,7 +6,11 @@ import {
   APPROVED_VOCABULARY,
   type ApprovedVocabularyItem
 } from "../../data/approvedVocabulary.js";
-import { classifyDeterministically, createUnknownClassification } from "./deterministicClassifier.js";
+import {
+  classifyDeterministically,
+  createUnknownClassification,
+  normalizeTranscript
+} from "./deterministicClassifier.js";
 import { AAC_CLASSIFIER_SYSTEM_PROMPT, buildClassifierUserContext } from "./prompts.js";
 import { AIClassificationSchema, type AIClassification } from "./schemas.js";
 import { validateClassification } from "./validation.js";
@@ -30,13 +34,37 @@ function isLiveClassifierEnabled(options: ClassifyQuestionOptions): boolean {
   return process.env.AI_LIVE_CLASSIFIER_ENABLED !== "false";
 }
 
+function joinedBathroomContinuation(
+  transcript: string,
+  recentContext: readonly string[]
+): string | null {
+  const previous = [...recentContext].reverse().find((line) => line.trim());
+  if (!previous) {
+    return null;
+  }
+
+  const previousNormalized = normalizeTranscript(previous);
+  const currentNormalized = normalizeTranscript(transcript);
+  const splitBathroomWord =
+    (previousNormalized.endsWith("bath") || previousNormalized.endsWith("rest")) &&
+    (currentNormalized === "room" || currentNormalized.startsWith("room "));
+
+  return splitBathroomWord ? `${previous.trim()} ${transcript.trim()}` : null;
+}
+
 export async function classifyQuestion(
   transcript: string,
   options: ClassifyQuestionOptions = {}
 ): Promise<AIClassification> {
   const vocabulary = options.approvedVocabulary ?? APPROVED_VOCABULARY;
   const maxChoices = options.maxChoices ?? 6;
-  const deterministic = classifyDeterministically(transcript, maxChoices);
+  const deterministicCurrent = classifyDeterministically(transcript, maxChoices);
+  const continuation = deterministicCurrent
+    ? null
+    : joinedBathroomContinuation(transcript, options.recentContext ?? []);
+  const deterministic = deterministicCurrent ?? (
+    continuation ? classifyDeterministically(continuation, maxChoices) : null
+  );
 
   if (deterministic && !options.forceLiveAI) {
     return validateClassification(deterministic, vocabulary, maxChoices);

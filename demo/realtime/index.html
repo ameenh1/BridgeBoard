@@ -60,6 +60,7 @@
       <div class="controls">
         <button id="start" class="primary">Start microphone</button>
         <button id="stop" class="secondary" disabled>Stop</button>
+        <button class="secondary demo" data-transcript="Do you want to go to the bathroom?">Test bathroom</button>
         <button class="secondary demo" data-transcript="Do you want your blue cup or red cup?">Test blue/red cup</button>
         <button class="secondary demo" data-transcript="Do you want waffles or pancakes?">Test waffles/pancakes</button>
       </div>
@@ -83,7 +84,7 @@
     <section class="panel">
       <strong>Visual board</strong>
       <p id="pipeline">Waiting for a finalized utterance.</p>
-      <p class="board-note">Only verified cached, web, or AI-generated images appear below.</p>
+      <p class="board-note">Only verified local, cached, web, or AI-generated images appear below.</p>
       <div id="board" class="board"></div>
     </section>
 
@@ -104,8 +105,15 @@
       let dataChannel = null;
       const partialByItem = new Map();
       const cards = new Map();
+      const readyAssetIds = new Set();
+      const RECENT_FRAGMENT_LIMIT = 2;
+      const RECENT_FRAGMENT_WINDOW_MS = 2000;
+      const EMPTY_STATE_GRACE_MS = 1200;
+      let finalizedFragments = [];
       let assetRequestVersion = 0;
       let activeAssetRequest = null;
+      let noOptionsTimer = null;
+      let recognizedRequestCount = 0;
 
       function setStatus(message) {
         status.textContent = message;
@@ -130,6 +138,9 @@
 
       async function startMicrophone() {
         try {
+          finalizedFragments = [];
+          partialByItem.clear();
+          partial.textContent = "";
           setStatus("Requesting microphone and connecting to OpenAI...");
           mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           peerConnection = new RTCPeerConnection();
@@ -165,6 +176,9 @@
         dataChannel = null;
         peerConnection = null;
         mediaStream = null;
+        partialByItem.clear();
+        finalizedFragments = [];
+        partial.textContent = "";
         startButton.disabled = false;
         stopButton.disabled = true;
         setStatus("Stopped. Use a demo transcript or start again.");
@@ -180,7 +194,19 @@
         if (event.type === "conversation.item.input_audio_transcription.completed") {
           partialByItem.delete(event.item_id);
           partial.textContent = "";
-          if (event.transcript) processFinalTranscript(event.transcript);
+          const transcript = typeof event.transcript === "string" ? event.transcript.trim() : "";
+          if (transcript) {
+            const now = Date.now();
+            finalizedFragments = finalizedFragments
+              .filter((fragment) => now - fragment.completedAt <= RECENT_FRAGMENT_WINDOW_MS)
+              .slice(-RECENT_FRAGMENT_LIMIT);
+            const recentContext = finalizedFragments.map((fragment) => fragment.transcript);
+            finalizedFragments = [
+              ...finalizedFragments,
+              { transcript, completedAt: now }
+            ].slice(-RECENT_FRAGMENT_LIMIT);
+            processFinalTranscript(transcript, recentContext);
+          }
         }
         if (event.type === "error") {
           setStatus(`OpenAI Realtime error: ${event.error?.message || "unknown error"}`);
@@ -191,30 +217,45 @@
         let card = cards.get(resolution.vocabularyId);
         if (!card) {
           card = document.createElement("article");
-          card.className = "asset verified";
           card.setAttribute("aria-live", "polite");
-          card.innerHTML = `<img alt="" loading="eager" decoding="async"><div class="asset-heading"><strong></strong><span class="badge">Verified</span></div><small></small><div class="asset-meta"></div>`;
           board.appendChild(card);
           cards.set(resolution.vocabularyId, card);
         }
+        card.className = "asset verified";
+        card.innerHTML = `<img alt="" loading="eager" decoding="async"><div class="asset-heading"><strong></strong><span class="badge">Verified</span></div><small></small><div class="asset-meta"></div>`;
         return card;
       }
 
       function showPreparingCard() {
         const card = document.createElement("article");
         card.className = "asset pending";
-        card.dataset.pending = "true";
+        card.dataset.preparing = "true";
         card.setAttribute("aria-live", "polite");
         card.innerHTML = `<div class="asset-loading-visual" role="img" aria-label="Waiting for a verified visual"></div><strong>Resolving verified visuals</strong><br><small>Checking cache, image generation, and web fallback...</small>`;
         board.appendChild(card);
       }
 
       function removePreparingCard() {
-        board.querySelector('[data-pending="true"]')?.remove();
+        board.querySelector('[data-preparing="true"]')?.remove();
+      }
+
+      function showPendingRequestCards(requests) {
+        removePreparingCard();
+        for (const request of requests) {
+          if (cards.has(request.vocabularyId)) continue;
+          const card = document.createElement("article");
+          card.className = "asset pending";
+          card.setAttribute("aria-live", "polite");
+          card.innerHTML = `<div class="asset-loading-visual" role="img" aria-label="Waiting for a verified visual"></div><div class="asset-heading"><strong></strong><span class="badge">Loading</span></div><small>Checking verified local and cached assets...</small><div class="asset-meta"></div>`;
+          card.querySelector("strong").textContent = request.displayLabel || request.vocabularyId;
+          board.appendChild(card);
+          cards.set(request.vocabularyId, card);
+        }
       }
 
       function showNoOptionsCard() {
-        removePreparingCard();
+        board.replaceChildren();
+        cards.clear();
         const card = document.createElement("article");
         card.className = "asset";
         card.innerHTML = `<div class="asset-empty-visual" role="img" aria-label="No explicit option recognized"></div><strong>No explicit options</strong><br><small>Try a short choice question or repeat.</small>`;
@@ -223,13 +264,32 @@
 
       function showResolutionError(resolution) {
         removePreparingCard();
-        if (cards.has(resolution.vocabularyId)) return;
-        const card = document.createElement("article");
+        const card = cards.get(resolution.vocabularyId) || document.createElement("article");
+        if (!cards.has(resolution.vocabularyId)) {
+          board.appendChild(card);
+          cards.set(resolution.vocabularyId, card);
+        }
         card.className = "asset error";
         card.innerHTML = `<div class="asset-error-visual" role="img" aria-label="No verified image available">No verified image available</div><strong></strong><br><small></small>`;
-        card.querySelector("strong").textContent = resolution.vocabularyId;
+        card.querySelector("strong").textContent = resolution.label || resolution.vocabularyId;
         card.querySelector("small").textContent = resolution.error || "The asset providers did not return a valid image.";
-        board.appendChild(card);
+      }
+
+      function clearNoOptionsTimer() {
+        if (noOptionsTimer !== null) {
+          clearTimeout(noOptionsTimer);
+          noOptionsTimer = null;
+        }
+      }
+
+      function scheduleNoOptionsState(requestVersion) {
+        clearNoOptionsTimer();
+        noOptionsTimer = setTimeout(() => {
+          noOptionsTimer = null;
+          if (requestVersion !== assetRequestVersion || recognizedRequestCount > 0) return;
+          showNoOptionsCard();
+          pipeline.textContent = "No explicit caregiver options were recognized after waiting for a continuation.";
+        }, EMPTY_STATE_GRACE_MS);
       }
 
       function sourceLabel(source) {
@@ -246,6 +306,7 @@
         if (resolution.status !== "ready" || resolution.source === "placeholder") return;
         removePreparingCard();
         const card = cardFor(resolution);
+        readyAssetIds.add(resolution.vocabularyId);
         const image = card.querySelector("img");
         const label = card.querySelector("strong");
         const detail = card.querySelector("small");
@@ -279,10 +340,13 @@
         }
       }
 
-      async function processFinalTranscript(transcript) {
+      async function processFinalTranscript(transcript, recentContext = []) {
         const requestVersion = ++assetRequestVersion;
+        clearNoOptionsTimer();
         activeAssetRequest?.abort();
         activeAssetRequest = new AbortController();
+        recognizedRequestCount = 0;
+        readyAssetIds.clear();
         finalText.textContent = transcript;
         pipeline.textContent = "Finalized transcript received. Waiting for verified assets...";
         board.replaceChildren();
@@ -293,7 +357,7 @@
           const response = await fetch("/api/resolve-assets", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ transcript }),
+            body: JSON.stringify({ transcript, recentContext }),
             signal: activeAssetRequest.signal
           });
           if (!response.ok) {
@@ -314,11 +378,15 @@
               const event = JSON.parse(line);
               if (requestVersion !== assetRequestVersion) continue;
               if (event.type === "classification") {
-                if (!Array.isArray(event.requests) || event.requests.length === 0) {
-                  showNoOptionsCard();
-                  pipeline.textContent = "No explicit caregiver options were recognized.";
+                const requests = Array.isArray(event.requests) ? event.requests : [];
+                recognizedRequestCount = requests.length;
+                if (requests.length === 0) {
+                  pipeline.textContent = "No option recognized yet. Waiting briefly for a transcript continuation...";
+                  scheduleNoOptionsState(requestVersion);
                 } else {
-                  pipeline.textContent = `Recognized ${event.requests.length} option${event.requests.length === 1 ? "" : "s"}. Searching and generating verified visuals...`;
+                  clearNoOptionsTimer();
+                  showPendingRequestCards(requests);
+                  pipeline.textContent = `Recognized ${requests.length} option${requests.length === 1 ? "" : "s"}. Resolving verified visuals...`;
                 }
               }
               if (event.type === "fallback") {
@@ -326,16 +394,18 @@
               }
               if (event.type === "ready") {
                 renderResolution(event.resolution);
-                pipeline.textContent = `${cards.size} verified visual${cards.size === 1 ? "" : "s"} shown. Loading any remaining assets...`;
+                pipeline.textContent = `${readyAssetIds.size} verified visual${readyAssetIds.size === 1 ? "" : "s"} shown. Loading any remaining assets...`;
               }
-              if (event.type === "error") {
+              if (event.type === "error" && event.resolution) {
                 showResolutionError(event.resolution);
                 pipeline.textContent = "A verified asset could not be loaded for one or more options.";
               }
               if (event.type === "done") {
-                pipeline.textContent = cards.size > 0
-                  ? `${cards.size} verified visual${cards.size === 1 ? "" : "s"} shown. Asset pipeline complete.`
-                  : "No verified images were available.";
+                if (readyAssetIds.size > 0) {
+                  pipeline.textContent = `${readyAssetIds.size} verified visual${readyAssetIds.size === 1 ? "" : "s"} shown. Asset pipeline complete.`;
+                } else if (recognizedRequestCount > 0) {
+                  pipeline.textContent = `${recognizedRequestCount} option${recognizedRequestCount === 1 ? " was" : "s were"} recognized, but no image provider returned a verified asset.`;
+                }
               }
             }
             if (done) break;
@@ -357,10 +427,10 @@
       manualForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const transcript = manualTranscript.value.trim();
-        if (transcript) processFinalTranscript(transcript);
+        if (transcript) processFinalTranscript(transcript, []);
       });
       document.querySelectorAll(".demo").forEach((button) => {
-        button.addEventListener("click", () => processFinalTranscript(button.dataset.transcript));
+        button.addEventListener("click", () => processFinalTranscript(button.dataset.transcript, []));
       });
     </script>
   </body>

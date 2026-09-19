@@ -180,6 +180,44 @@ describe("visual asset resolution", () => {
     expect(calls).toBe(0);
   });
 
+  it("serves the verified bathroom response board locally without provider calls", async () => {
+    let calls = 0;
+    const ready: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Do you want to go to the bathroom?",
+      providers: {
+        discoverWebImage: async () => {
+          calls += 1;
+          return null;
+        },
+        generateImage: async () => {
+          calls += 1;
+          return null;
+        }
+      },
+      onEvent: (event) => {
+        if (event.type === "ready") {
+          ready.push(`${event.resolution.label}:${event.resolution.source}`);
+        }
+      }
+    });
+
+    await result.pending;
+    expect(result.requests.map((request) => request.vocabularyId)).toEqual([
+      "need_bathroom",
+      "action_yes",
+      "action_no",
+      "need_help"
+    ]);
+    expect(ready).toEqual([
+      "Bathroom:local",
+      "Yes:local",
+      "No:local",
+      "Help:local"
+    ]);
+    expect(calls).toBe(0);
+  });
+
   it("uses generation first to avoid web search when generation succeeds", async () => {
     let webCalls = 0;
     let generationCalls = 0;

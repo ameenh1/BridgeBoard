@@ -8,6 +8,8 @@ export const DEFAULT_SUPPORT_ACTIONS: AIClassification["supportActions"] = [
   "full_board"
 ];
 
+const BATHROOM_CONCEPT_PATTERN = /\b(?:bath\s*room|rest\s*room|toilet|potty|washroom)\b/u;
+
 function normalizeTranscript(transcript: string): string {
   return transcript
     .normalize("NFKC")
@@ -123,7 +125,7 @@ export function classifyDeterministically(
     };
   }
 
-  if (/\bbathroom\b|\btoilet\b/.test(normalized)) {
+  if (BATHROOM_CONCEPT_PATTERN.test(normalized)) {
     return {
       questionType: "body_needs",
       questionText: transcript.trim().slice(0, 300),

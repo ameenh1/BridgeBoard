@@ -1,6 +1,9 @@
 import OpenAI from "openai";
 import { describe, expect, it } from "vitest";
-import { APPROVED_VOCABULARY } from "../data/approvedVocabulary.js";
+import {
+  APPROVED_VOCABULARY,
+  getApprovedVocabularySpeechKeywords
+} from "../data/approvedVocabulary.js";
 import {
   classifyDeterministically,
   createUnknownClassification
@@ -45,6 +48,24 @@ describe("deterministic AAC classifier", () => {
     ]);
   });
 
+  it("recognizes common bathroom speech aliases", () => {
+    for (const transcript of [
+      "Do you need the bath room?",
+      "Do you want to use the restroom?",
+      "Do you need to go to the rest room?",
+      "Do you need the toilet?",
+      "Do you need to go potty?",
+      "Do you need the washroom?"
+    ]) {
+      expect(classifyDeterministically(transcript)?.candidateVocabularyIds).toEqual([
+        "need_bathroom",
+        "action_yes",
+        "action_no",
+        "need_help"
+      ]);
+    }
+  });
+
   it("falls back for uncertain and medical questions", () => {
     expect(classifyDeterministically("Should we maybe go after you finish that unless you want something different?")?.requiresFallback).toBe(true);
     expect(classifyDeterministically("Should we change the medication dose?")?.requiresFallback).toBe(true);
@@ -53,6 +74,32 @@ describe("deterministic AAC classifier", () => {
 });
 
 describe("classification safety boundary", () => {
+  it("joins only a fresh split bathroom word supplied as recent context", async () => {
+    const result = await classifyQuestion("room", {
+      recentContext: ["Do you want to go to the bath"],
+      allowLiveAI: false
+    });
+    expect(result.candidateVocabularyIds).toEqual([
+      "need_bathroom",
+      "action_yes",
+      "action_no",
+      "need_help"
+    ]);
+
+    const isolated = await classifyQuestion("room", { allowLiveAI: false });
+    expect(isolated.candidateVocabularyIds).toEqual([]);
+    expect(isolated.requiresFallback).toBe(true);
+  });
+
+  it("builds sanitized Realtime keywords from approved vocabulary and aliases", () => {
+    const keywords = getApprovedVocabularySpeechKeywords();
+    expect(keywords).toContain("bathroom");
+    expect(keywords).toContain("bath room");
+    expect(keywords).toContain("restroom");
+    expect(keywords).toContain("potty");
+    expect(keywords.every((keyword) => !/[<>\r\n]/u.test(keyword))).toBe(true);
+  });
+
   it("rejects an invented vocabulary ID instead of partially trusting it", () => {
     const result = validateClassification(
       {

@@ -1,6 +1,9 @@
 // Server orchestration module. Browser callers should use the event contract,
 // not import OpenAI or Supabase implementation modules.
-import { IMAGE_MANIFEST } from "../../data/imageManifest.js";
+import {
+  IMAGE_MANIFEST,
+  VERIFIED_LOCAL_IMAGE_MANIFEST
+} from "../../data/imageManifest.js";
 import {
   APPROVED_VOCABULARY,
   type ApprovedVocabularyItem
@@ -49,9 +52,23 @@ function fallbackResolution(request: VisualAssetRequest): AssetResolution {
     vocabularyId: request.vocabularyId,
     label: request.displayLabel,
     status: "fallback",
-    source: IMAGE_MANIFEST[request.vocabularyId] ? "local" : "placeholder",
+    source: assetUrl === "/default-images/placeholder.svg" ? "placeholder" : "local",
     assetUrl
   };
+}
+
+function verifiedLocalResolution(request: VisualAssetRequest): AssetResolution | null {
+  const assetUrl = VERIFIED_LOCAL_IMAGE_MANIFEST[request.vocabularyId];
+  return assetUrl
+    ? {
+        assetKey: request.cacheKey,
+        vocabularyId: request.vocabularyId,
+        label: request.displayLabel,
+        status: "ready",
+        source: "local",
+        assetUrl
+      }
+    : null;
 }
 
 function emit(options: ResolveVisualAssetsOptions, event: AssetResolutionEvent): void {
@@ -277,6 +294,12 @@ export async function resolveVisualAssets(
           attribution: localRecord.attribution
         }
       });
+      continue;
+    }
+
+    const localVerified = verifiedLocalResolution(request);
+    if (localVerified) {
+      emit(options, { type: "ready", resolution: localVerified });
       continue;
     }
 
