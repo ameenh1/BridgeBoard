@@ -37,6 +37,7 @@ import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { ACTIONS } from "./icons";
+import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
 type View = "board" | "ai" | "history" | "caregiver" | "settings";
@@ -46,11 +47,13 @@ type Health = {
   sharedCache: "configured" | "optional_unconfigured";
 };
 
-const INITIAL_SESSION: BoardSessionState = {
-  board: null,
-  isRefreshing: false,
-  partialTranscript: "",
-};
+function makeInitialSession(): BoardSessionState {
+  return {
+    board: createWelcomeBoard(),
+    isRefreshing: false,
+    partialTranscript: "",
+  };
+}
 
 const subscribeNever = () => () => {};
 
@@ -89,7 +92,7 @@ function BridgeBoardShell() {
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
   const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
-  const [session, setSession] = useState<BoardSessionState>(INITIAL_SESSION);
+  const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
   const [health, setHealth] = useState<Health>();
