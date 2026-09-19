@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ESLint walks the filesystem, not git, so .gitignore does not cover this.
+    // The replaced Vite app can still be present in a working copy, and
+    // linting its minified bundle fails the build on rules that only make
+    // sense for source we wrote.
+    "frontend/**",
   ]),
 ]);
 

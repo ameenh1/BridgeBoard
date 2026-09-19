@@ -1,7 +1,10 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+# Unanchored on purpose: "/node_modules" matched the root only, so a
+# node_modules inside any subdirectory slipped through and 428 vendored
+# files were committed once already.
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -43,3 +46,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# The Vite app the merged Next.js app replaced. Its source lives on the
+# `frontend` branch; only build output ever reached main.
+/frontend/

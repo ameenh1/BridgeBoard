@@ -66,7 +66,7 @@ later and upgrade one tile at a time; nothing ever waits on an image.
 | Login | Supabase email/password account creation and sign-in. New accounts must confirm their email before signing in. |
 | Default AAC | The manual 4×6 board. Works with no network. Driven by `src/lib/board/defaultBoardLayout.ts`, which holds ids only. |
 | AI AAC | Live transcription and classification. The committed board stays mounted and usable while the next one loads. |
-| History | Local-only record of choices. Never uploaded, never audio. |
+| History | Account-backed record of choices. Never includes audio. |
 | Settings | Name, choices per board, picture policy, button size, labels, speech, quiet mode, rate, voice, history. |
 
 ### Where words come from

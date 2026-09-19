@@ -32,6 +32,13 @@ import {
   saveCloudProfile,
   signOutCloud,
 } from "@/lib/storage/cloud";
+import {
+  clearPersonalPhotos,
+  loadPersonalPhotos,
+  personalPhotoMap,
+  type PersonalPhoto,
+} from "@/lib/storage/personalPhotos";
+import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
@@ -39,25 +46,29 @@ import type { VocabularyItem } from "@/types/vocabulary";
 import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
+import { PhotosScreen } from "./PhotosScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
 import { ACTIONS } from "./icons";
+import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
-type View = "board" | "ai" | "history" | "caregiver" | "settings";
+type View = "board" | "ai" | "history" | "caregiver" | "settings" | "photos";
 
 type Health = {
   classifier: "live" | "unconfigured";
   sharedCache: "configured" | "optional_unconfigured";
 };
 
-const INITIAL_SESSION: BoardSessionState = {
-  board: null,
-  isRefreshing: false,
-  partialTranscript: "",
-};
+function makeInitialSession(): BoardSessionState {
+  return {
+    board: createWelcomeBoard(),
+    isRefreshing: false,
+    partialTranscript: "",
+  };
+}
 
 const subscribeNever = () => () => {};
 
@@ -91,15 +102,16 @@ export function BridgeBoardApp() {
 function BridgeBoardShell() {
   const [stage, setStage] = useState<Stage>("login");
   const [authReady, setAuthReady] = useState(false);
-  const [accountUserId, setAccountUserId] = useState<string>();
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
   const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
-  const [session, setSession] = useState<BoardSessionState>(INITIAL_SESSION);
+  const [photos, setPhotos] = useState<PersonalPhoto[]>(() => loadPersonalPhotos());
+  const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
   const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
+  const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
   const boardController = useRef<BoardSessionController | null>(null);
   const realtimeController = useRef<RealtimeTranscriptionController | null>(null);
@@ -107,13 +119,13 @@ function BridgeBoardShell() {
   // notably `say`, which the controllers close over.
   const profileRef = useRef(profile);
 
-  const openAccount = useCallback(async (userId: string) => {
+  const openAccount = useCallback(async (user: { id: string; email?: string | null }) => {
     const [cloudProfile, cloudHistory] = await Promise.all([
-      loadCloudProfile(userId),
-      loadCloudHistory(userId),
+      loadCloudProfile(user.id),
+      loadCloudHistory(user.id),
     ]);
     const nextProfile = cloudProfile ?? DEFAULT_PROFILE;
-    setAccountUserId(userId);
+    setAuthUser({ id: user.id, email: user.email ?? "" });
     setProfile(nextProfile);
     updateSettings(nextProfile);
     setHistory(cloudHistory);
@@ -125,25 +137,8 @@ function BridgeBoardShell() {
 
   const handleAuthenticated = useCallback(async () => {
     const user = await getCurrentUser();
-    if (user) await openAccount(user.id);
+    if (user) await openAccount(user);
   }, [openAccount]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void getCurrentUser()
-      .then(async (user) => {
-        if (cancelled) return;
-        if (user) await openAccount(user.id);
-        if (!cancelled) setAuthReady(true);
-      })
-      .catch(() => {
-        if (!cancelled) setAuthReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [openAccount]);
-
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
@@ -171,6 +166,21 @@ function BridgeBoardShell() {
     return () => aborter.abort();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getCurrentUser()
+      .then(async (user) => {
+        if (user) await openAccount(user);
+        if (!cancelled) setAuthReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openAccount]);
+
   // Releases the microphone if the tab closes or the shell unmounts while a
   // session is live. Nothing should keep listening past this component.
   useEffect(
@@ -191,9 +201,9 @@ function BridgeBoardShell() {
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
     const next = updateSettings(patch);
     setProfile(next);
-    if (accountUserId) void saveCloudProfile(accountUserId, next);
+    if (authUser) void saveCloudProfile(authUser.id, next);
     if (patch.quietMode || patch.speechEnabled === false) cancelSpeech();
-  }, [accountUserId]);
+  }, [authUser]);
 
   const record = useCallback(
     (entry: Omit<CommunicationHistoryEntry, "id" | "timestamp">) => {
@@ -201,12 +211,12 @@ function BridgeBoardShell() {
       if (!current.historyEnabled) return;
       appendHistory(entry, true);
       setHistory(loadHistory());
-      if (accountUserId) {
+      if (authUser) {
         const full = loadHistory().at(-1);
-        if (full) void saveCloudHistory(accountUserId, profileRef.current.id, full);
+        if (full) void saveCloudHistory(authUser.id, profileRef.current.id, full);
       }
     },
-    [accountUserId],
+    [authUser],
   );
 
   const chooseVocabulary = useCallback(
@@ -284,25 +294,40 @@ function BridgeBoardShell() {
 
   const finishSetup = useCallback((next: ChildProfile) => {
     void (async () => {
-      const saved = accountUserId ? await saveCloudProfile(accountUserId, next) : next;
+      const saved = authUser ? await saveCloudProfile(authUser.id, next) : next;
       updateSettings(saved);
       setProfile(saved);
       setStage("app");
       setView("board");
     })();
-  }, [accountUserId]);
+  }, [authUser]);
 
   const resetProfile = useCallback(() => {
-    if (!window.confirm("Reset this profile? Settings and history on this device will be erased.")) {
+    if (!window.confirm("Reset this profile? Settings, history and personal photos on this device will be erased.")) {
       return;
     }
     void stopListening();
     clearSettings();
     clearHistory();
+    clearPersonalPhotos();
     void signOutCloud();
+    setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
     setHistory([]);
-    setAccountUserId(undefined);
+    setPhotos([]);
+    setStage("login");
+    setView("board");
+  }, [stopListening]);
+
+  /**
+   * Signing out ends the account session only. Settings and history are the
+   * child's and stay on the device — losing a board configuration because a
+   * caregiver signed out of an optional account would be the wrong trade.
+   */
+  const handleSignOut = useCallback(() => {
+    void stopListening();
+    void signOutCloud();
+    setAuthUser(null);
     setStage("login");
     setView("board");
   }, [stopListening]);
@@ -311,8 +336,8 @@ function BridgeBoardShell() {
     if (!window.confirm("Clear the history saved on this device?")) return;
     clearHistory();
     setHistory([]);
-    if (accountUserId) void clearCloudHistory(accountUserId);
-  }, [accountUserId]);
+    if (authUser) void clearCloudHistory(authUser.id);
+  }, [authUser]);
 
   if (!authReady) return <main className="boot-screen" aria-busy="true" />;
 
@@ -343,6 +368,16 @@ function BridgeBoardShell() {
   if (stage === "setup") {
     return <SetupScreen initial={profile} onFinish={finishSetup} />;
   }
+
+  // Personal photos are applied here rather than on the server: they are
+  // never uploaded, so a board arrives generic and is personalized on the
+  // device. applyPersonalPhotos returns the same reference when nothing
+  // matches, so this costs nothing when no photos are set.
+  const photoMap = personalPhotoMap(photos);
+  const personalizedSession =
+    session.board && photoMap.size > 0
+      ? { ...session, board: applyPersonalPhotos(session.board, photoMap) }
+      : session;
 
   const name = profile.displayName.trim();
 
@@ -379,6 +414,19 @@ function BridgeBoardShell() {
             </span>
             {name || "Caregiver"}
           </button>
+
+          {/* Only shown when an account is actually in use. Nothing here
+              nags an unsigned-in caregiver to create one. */}
+          {authUser ? (
+            <button
+              className="signout-button"
+              type="button"
+              onClick={handleSignOut}
+              title={`Signed in as ${authUser.email}`}
+            >
+              Sign out
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -390,12 +438,17 @@ function BridgeBoardShell() {
       */}
       <div className="app-content">
         {view === "board" ? (
-          <DefaultBoard profile={profile} onSpeak={say} onRecord={chooseVocabulary} />
+          <DefaultBoard
+            profile={profile}
+            photos={photoMap}
+            onSpeak={say}
+            onRecord={chooseVocabulary}
+          />
         ) : null}
 
         {view === "ai" ? (
           <AiBoard
-            session={session}
+            session={personalizedSession}
             profile={profile}
             realtimeState={realtimeState}
             microphoneError={microphoneError}
@@ -415,7 +468,15 @@ function BridgeBoardShell() {
         ) : null}
 
         {view === "caregiver" ? (
-          <CaregiverScreen onOpenSettings={() => setView("settings")} />
+          <CaregiverScreen
+            onOpenSettings={() => setView("settings")}
+            onOpenPhotos={() => setView("photos")}
+            photoCount={photos.length}
+          />
+        ) : null}
+
+        {view === "photos" ? (
+          <PhotosScreen photos={photos} onChange={setPhotos} />
         ) : null}
 
         {view === "settings" ? (

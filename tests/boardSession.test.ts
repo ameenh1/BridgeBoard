@@ -4,6 +4,10 @@ import {
   createBoardSessionController,
   mergeCommittedBoard,
 } from "@/lib/board/boardSessionController";
+import {
+  createWelcomeBoard,
+  getPersistentAiChoices,
+} from "@/lib/board/persistentChoices";
 import type { RenderableBoard, RenderableChoice } from "@/types/board";
 
 function choice(id: string, status: "ready" | "pending" = "pending"): RenderableChoice {
@@ -42,8 +46,16 @@ describe("stable board merging", () => {
     const incoming = board("00000000-0000-4000-8000-000000000002", [choice("waffles"), choice("water"), choice("juice")]);
     const merged = mergeCommittedBoard(current, incoming);
 
-    expect(merged.choices.map((item) => item.visual.status)).toEqual(["ready", "ready", "pending"]);
-    expect(merged.choices[0]?.visual.url).toBe("https://example.com/waffles");
+    // Persistent quick answers first, then the AI suggestions.
+    expect(merged.choices.slice(0, 4).map((item) => item.visual.status)).toEqual([
+      "ready",
+      "ready",
+      "ready",
+      "ready",
+    ]);
+    const ai = merged.choices.slice(4);
+    expect(ai.map((item) => item.visual.status)).toEqual(["ready", "ready", "pending"]);
+    expect(ai[0]?.visual.url).toBe("https://example.com/waffles");
   });
 
   it("updates only the matching visual and never regresses a ready image", () => {
@@ -88,7 +100,41 @@ describe("speech coalescing and committed-board retention", () => {
     const controller = createBoardSessionController({ fetchImpl });
     await controller.submitQuestion("first");
     await controller.submitQuestion("second");
-    expect(controller.getState().board?.choices[0]?.id).toBe("waffles");
+    const ids = controller.getState().board?.choices.map((item) => item.id) ?? [];
+    expect(ids).toContain("waffles");
     expect(controller.getState().board?.isRefreshing).toBe(false);
+  });
+});
+
+describe("persistent quick answers", () => {
+  it("shows four ready bundled choices before the first question", () => {
+    const welcome = createWelcomeBoard();
+    expect(welcome.choices).toHaveLength(4);
+    expect(welcome.choices.every((item) => item.visual.status === "ready")).toBe(true);
+    expect(getPersistentAiChoices().map((item) => item.id)).toEqual([
+      "core_yes",
+      "core_no",
+      "core_more",
+      "core_all_done",
+    ]);
+  });
+
+  it("starts the session on the welcome board and keeps quick answers on every commit", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        board: board("00000000-0000-4000-8000-000000000005", [choice("waffles", "ready")]),
+      }),
+    );
+    const controller = createBoardSessionController({ fetchImpl });
+    expect(controller.getState().board?.choices.map((item) => item.id)).toEqual([
+      "core_yes",
+      "core_no",
+      "core_more",
+      "core_all_done",
+    ]);
+    await controller.submitQuestion("Would you like waffles?");
+    const ids = controller.getState().board?.choices.map((item) => item.id) ?? [];
+    expect(ids.slice(0, 4)).toEqual(["core_yes", "core_no", "core_more", "core_all_done"]);
+    expect(ids).toContain("waffles");
   });
 });

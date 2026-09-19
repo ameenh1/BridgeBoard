@@ -23,9 +23,8 @@ function LeafDecor() {
 /**
  * Profile picker shown after the caregiver account/session is entered.
  *
- * The current storage layer still keeps one local profile; this screen is
- * shaped like the future account-level profile picker so cloud profiles can
- * be added without changing the visual flow later.
+ * The current account stores one profile. This screen is shaped like a
+ * profile picker so additional child profiles can be added later.
  */
 export function ProfileGateScreen({
   profile,
@@ -70,7 +69,7 @@ export function ProfileGateScreen({
   );
 }
 
-/** First-run setup, and the form "set up a new local profile" returns to. */
+/** First-run setup, and the form used to create or update the account profile. */
 export function SetupScreen({
   initial,
   onFinish,
@@ -167,8 +166,8 @@ export function SetupScreen({
 
           <label className="toggle-row">
             <span>
-              <strong>Keep a local history</strong>
-              <small>Stored on this device only</small>
+              <strong>Keep history</strong>
+              <small>Saved to your account when you are signed in</small>
             </span>
             <input
               type="checkbox"

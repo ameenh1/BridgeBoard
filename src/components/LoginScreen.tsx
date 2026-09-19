@@ -6,9 +6,9 @@ import { isSupabaseBrowserConfigured } from "@/lib/supabase/browser";
 import { signInWithPassword, signUpWithPassword } from "@/lib/storage/cloud";
 
 /**
- * Temporary local entry point.
+ * Supabase email/password entry point for account creation and sign-in.
  *
- * The email and password fields are visual placeholders for an account flow
+ * The email and password fields are used for an account flow
  * that has not been built. They are optional, uncontrolled, never read by any
  * handler, never stored, and never sent anywhere — the submit handler ignores
  * the form entirely and just starts a local session. Keeping them visible
