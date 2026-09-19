@@ -4,7 +4,10 @@ import { DEFAULT_PROFILE } from "@/types/profile";
 import { classifyQuestion } from "@/lib/ai/classifyQuestion";
 import { buildRenderableBoard } from "@/lib/board/buildRenderableBoard";
 import { createFallbackBoard } from "@/lib/board/createFallbackBoard";
-import { ClassifyQuestionRequestSchema } from "@/lib/validation/requestSchemas";
+import {
+  ClassifyQuestionRequestSchema,
+  type ClassifyQuestionRequest,
+} from "@/lib/validation/requestSchemas";
 import { buildVisualAssetRequests } from "@/lib/assets/visualRequests";
 import { createAssetStreamDescriptor } from "@/lib/assets/assetToken";
 import { hasAssetProviders } from "@/lib/assets/openaiAssetProviders";
@@ -46,20 +49,23 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     let board = await buildRenderableBoard(raw, profile, questionText);
-    const requests = buildVisualAssetRequests(board);
-    const assetStream = hasAssetProviders()
-      ? createAssetStreamDescriptor(board.boardId, requests)
-      : undefined;
-    if (!assetStream && requests.length > 0) {
-      board = {
-        ...board,
-        choices: board.choices.map((choice) =>
-          choice.visual.status === "pending"
-            ? { ...choice, visual: { ...choice.visual, status: "unavailable" as const } }
-            : choice,
-        ),
-      };
-    }
+    const requests = buildVisualAssetRequests(board, "en", profile.visuals);
+    const assetStream =
+      requests.length > 0 && hasAssetProviders()
+        ? createAssetStreamDescriptor(board.boardId, requests)
+        : undefined;
+
+    // Anything still pending that no stream will ever deliver must say so now.
+    // A tile that shows its symbol is usable; a tile stuck on a spinner is not.
+    const streaming = new Set(assetStream ? requests.map((request) => request.assetKey) : []);
+    board = {
+      ...board,
+      choices: board.choices.map((choice) =>
+        choice.visual.status === "pending" && !streaming.has(choice.visual.assetKey)
+          ? { ...choice, visual: { ...choice.visual, status: "unavailable" as const } }
+          : choice,
+      ),
+    };
     return json({ board, ...(assetStream ? { assetStream } : {}) });
   } catch (error) {
     // A bug in our own pipeline must not take communication down with it.
@@ -69,11 +75,14 @@ export async function POST(request: Request): Promise<Response> {
 }
 
 /** Accepts a partial profile from the client and fills the rest with defaults. */
-function mergeProfile(partial: { id?: string; maxChoices?: 2 | 4 | 6 } | undefined): ChildProfile {
+function mergeProfile(
+  partial: ClassifyQuestionRequest["profile"],
+): ChildProfile {
   return {
     ...DEFAULT_PROFILE,
     ...(partial?.id ? { id: partial.id } : {}),
     ...(partial?.maxChoices ? { maxChoices: partial.maxChoices } : {}),
+    ...(partial?.visuals ? { visuals: partial.visuals } : {}),
   };
 }
 

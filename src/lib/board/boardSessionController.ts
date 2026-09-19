@@ -12,11 +12,18 @@ export type BoardSessionState = {
   board: RenderableBoard | null;
   isRefreshing: boolean;
   partialTranscript: string;
+  /**
+   * The choiceKey the communicator last tapped. Held across classification so a
+   * selection made before a new question is asked survives the next commit, and
+   * cleared only when a committed board no longer offers that choice.
+   */
+  selectedChoiceKey?: string;
   lastError?: "classification" | "asset_stream";
 };
 
 export type BoardSessionController = {
   getState(): BoardSessionState;
+  selectChoice(choiceKey: string): void;
   acceptPartialTranscript(transcript: string): void;
   acceptFinalTranscript(transcript: string): void;
   submitQuestion(questionText: string): Promise<void>;
@@ -24,11 +31,15 @@ export type BoardSessionController = {
   destroy(): void;
 };
 
-type Options = {
+export type BoardSessionOptions = {
   classifyEndpoint?: string;
   fetchImpl?: typeof fetch;
   continuationWindowMs?: number;
-  profile?: { id?: string; maxChoices?: 2 | 4 | 6 };
+  profile?: {
+    id?: string;
+    maxChoices?: 2 | 4 | 6;
+    visuals?: "photos_first" | "mixed" | "icons_first";
+  };
   onStateChange?: (state: BoardSessionState) => void;
 };
 
@@ -116,7 +127,18 @@ function assetEvent(value: unknown): AssetStreamEvent | null {
   return null;
 }
 
-export function createBoardSessionController(options: Options = {}): BoardSessionController {
+/** The selection survives a commit only while the committed board still offers it. */
+function retainedSelection(
+  selectedChoiceKey: string | undefined,
+  board: RenderableBoard,
+): string | undefined {
+  if (!selectedChoiceKey) return undefined;
+  return board.choices.some((choice) => choice.choiceKey === selectedChoiceKey)
+    ? selectedChoiceKey
+    : undefined;
+}
+
+export function createBoardSessionController(options: BoardSessionOptions = {}): BoardSessionController {
   const fetchImpl = options.fetchImpl ?? fetch;
   let state: BoardSessionState = {
     board: null,
@@ -240,7 +262,14 @@ export function createBoardSessionController(options: Options = {}): BoardSessio
         return;
       }
       const board = mergeCommittedBoard(state.board, payload.board);
-      publish({ ...state, board, isRefreshing: false, partialTranscript: "", lastError: undefined });
+      publish({
+        ...state,
+        board,
+        isRefreshing: false,
+        partialTranscript: "",
+        selectedChoiceKey: retainedSelection(state.selectedChoiceKey, board),
+        lastError: undefined,
+      });
       stopIrrelevantStreams(board);
       if (payload.assetStream) startAssetStream(payload.assetStream, payload.board);
     } catch (error) {
@@ -263,6 +292,9 @@ export function createBoardSessionController(options: Options = {}): BoardSessio
 
   return {
     getState: () => state,
+    selectChoice(choiceKey) {
+      publish({ ...state, selectedChoiceKey: choiceKey });
+    },
     acceptPartialTranscript(transcript) {
       publish({ ...state, partialTranscript: transcript });
     },
