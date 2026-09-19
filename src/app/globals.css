@@ -1084,6 +1084,34 @@ body {
   margin-top: 22px;
 }
 
+/*
+   Compact AI grids: quick answers + suggestions share one screen so the board
+   can show up to 4 persistent + 6 AI tiles without scrolling past the question.
+*/
+.choice-grid--compact {
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: 10px;
+}
+
+.section-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 18px 0 0;
+  text-transform: uppercase;
+}
+
+.board-hint {
+  background: #fff;
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  color: var(--muted);
+  margin-top: 10px;
+  padding: 16px 18px;
+}
+
 .choice-card {
   align-items: center;
   background: #fff;
@@ -1111,6 +1139,16 @@ body {
 .choice-card.is-selected {
   border-color: var(--coral);
   box-shadow: 0 0 0 4px rgba(240, 101, 107, 0.16);
+}
+
+.choice-card--compact {
+  gap: 8px;
+  min-height: 160px;
+  padding: 12px 10px;
+}
+
+.choice-card--compact .choice-copy strong {
+  font-size: 17px;
 }
 
 /*
@@ -1532,6 +1570,10 @@ body {
 
   .choice-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .choice-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   }
 }
 

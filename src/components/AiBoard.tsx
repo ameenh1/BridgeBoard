@@ -8,6 +8,7 @@ import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { ChoiceVisual, VisualAttribution } from "./ChoiceVisual";
 import { ACTIONS, AlertCircle, ChoiceIcon } from "./icons";
+import { isPersistentAiChoice } from "@/lib/board/persistentChoices";
 
 const ALL_ACTIONS: BoardAction[] = [
   "help",
@@ -40,6 +41,39 @@ export function AiBoard({
   const [question, setQuestion] = useState("");
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
+  const persistentChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
+  const suggestionChoices =
+    board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? [];
+
+  function renderChoice(choice: RenderableChoice, compact: boolean) {
+    const selected = session.selectedChoiceKey === choice.choiceKey;
+    return (
+      <button
+        key={choice.choiceKey}
+        type="button"
+        className={`choice-card${selected ? " is-selected" : ""}${compact ? " choice-card--compact" : ""}`}
+        aria-pressed={selected}
+        onClick={() => onChoose(choice)}
+      >
+        <ChoiceVisual
+          visual={choice.visual}
+          iconKey={choice.iconKey}
+          label={choice.label}
+          large={!compact && profile.buttonSize === "large"}
+        />
+        <span className="choice-copy">
+          <strong>{choice.label}</strong>
+          {profile.textLabelsEnabled ? <small>{choice.spokenPhrase}</small> : null}
+        </span>
+        <VisualAttribution visual={choice.visual} />
+        {choice.origin === "dynamic" ? (
+          <span className="origin-badge">
+            <Sparkles aria-hidden="true" size={13} /> New
+          </span>
+        ) : null}
+      </button>
+    );
+  }
 
   // The committed board keeps its own actions. Before the first question there
   // is no board yet, so the full support set is offered — those phrases are
@@ -116,7 +150,7 @@ export function AiBoard({
       <div className="board-heading-row">
         <div>
           <span className="eyebrow">Communication board</span>
-          <h2>{board?.title ?? "Choices will appear here"}</h2>
+          <h2>{board?.title ?? "Start here"}</h2>
           {board?.questionText ? (
             <p className="heard-question">&ldquo;{board.questionText}&rdquo;</p>
           ) : null}
@@ -151,37 +185,23 @@ export function AiBoard({
       ) : null}
 
       {board ? (
-        <div className="choice-grid">
-          {board.choices.map((choice) => {
-            const selected = session.selectedChoiceKey === choice.choiceKey;
-            return (
-              <button
-                key={choice.choiceKey}
-                type="button"
-                className={`choice-card${selected ? " is-selected" : ""}`}
-                aria-pressed={selected}
-                onClick={() => onChoose(choice)}
-              >
-                <ChoiceVisual
-                  visual={choice.visual}
-                  iconKey={choice.iconKey}
-                  label={choice.label}
-                  large={profile.buttonSize === "large"}
-                />
-                <span className="choice-copy">
-                  <strong>{choice.label}</strong>
-                  {profile.textLabelsEnabled ? <small>{choice.spokenPhrase}</small> : null}
-                </span>
-                <VisualAttribution visual={choice.visual} />
-                {choice.origin === "dynamic" ? (
-                  <span className="origin-badge">
-                    <Sparkles aria-hidden="true" size={13} /> New
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+        <>
+          <p className="section-label">Quick answers — always here</p>
+          <div className="choice-grid choice-grid--compact">
+            {persistentChoices.map((choice) => renderChoice(choice, true))}
+          </div>
+          <p className="section-label">Suggestions for this question</p>
+          {suggestionChoices.length > 0 ? (
+            <div className="choice-grid choice-grid--compact">
+              {suggestionChoices.map((choice) => renderChoice(choice, true))}
+            </div>
+          ) : (
+            <p className="board-hint">
+              Ask a question above and the suggestions appear here. The quick
+              answers above keep working the whole time pictures load.
+            </p>
+          )}
+        </>
       ) : (
         <div className="empty-board">
           <span className="empty-icon" aria-hidden="true">

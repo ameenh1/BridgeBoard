@@ -7,6 +7,10 @@ import type {
   RenderableChoice,
 } from "@/types/board";
 import type { AssetStreamEvent } from "@/lib/assets/types";
+import {
+  createWelcomeBoard,
+  withPersistentChoices,
+} from "./persistentChoices";
 
 export type BoardSessionState = {
   board: RenderableBoard | null;
@@ -60,11 +64,22 @@ export function mergeCommittedBoard(
   previous: RenderableBoard | null,
   next: RenderableBoard,
 ): RenderableBoard {
-  if (!previous) return { ...next, isRefreshing: false };
+  // The quick answers are always there: persistent core tiles first (with
+  // ready bundled pictures), then the AI suggestions. Image retention still
+  // happens per-choice by stable assetKey in mergeChoice, so an already-loaded
+  // picture is never replaced by a spinner while new images generate.
+  if (!previous) {
+    return { ...next, choices: withPersistentChoices(next.choices), isRefreshing: false };
+  }
   const oldByKey = new Map(previous.choices.map((choice) => [choice.choiceKey, choice]));
+  const mergedAi = next.choices.map((choice) => mergeChoice(oldByKey.get(choice.choiceKey), choice));
+  const withPersistent = withPersistentChoices(mergedAi);
+  // Re-apply ready-image retention for persistent tiles that were already
+  // loaded on the previous board (same assetKey, e.g. Yes/No across boards).
+  const finalChoices = withPersistent.map((choice) => mergeChoice(oldByKey.get(choice.choiceKey), choice));
   return {
     ...next,
-    choices: next.choices.map((choice) => mergeChoice(oldByKey.get(choice.choiceKey), choice)),
+    choices: finalChoices,
     isRefreshing: false,
   };
 }
@@ -141,7 +156,7 @@ function retainedSelection(
 export function createBoardSessionController(options: BoardSessionOptions = {}): BoardSessionController {
   const fetchImpl = options.fetchImpl ?? fetch;
   let state: BoardSessionState = {
-    board: null,
+    board: createWelcomeBoard(),
     isRefreshing: false,
     partialTranscript: "",
   };
