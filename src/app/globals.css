@@ -1534,3 +1534,11 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 }
+
+/* Shown by the error boundary above the recovered manual board. */
+.recovery-note {
+  color: var(--coral-deep);
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}

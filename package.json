@@ -19,7 +19,8 @@
     "images:manifest": "tsx scripts/generateImageManifest.ts",
     "images:check": "tsx scripts/checkImages.ts",
     "supabase:setup-assets": "tsx scripts/setupSupabaseAssets.ts",
-    "artwork:import": "tsx scripts/importFrontendArtwork.ts"
+    "artwork:import": "tsx scripts/importFrontendArtwork.ts",
+    "cache:warm": "tsx scripts/warmCache.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
