@@ -32,24 +32,24 @@ Status as of the `backend` branch. Check items off as they land.
 | [x] | Allowlist helpers | `src/lib/vocabulary/vocabularyHelpers.ts` |
 | [x] | Fallback board exists and is tested | `src/lib/board/createFallbackBoard.ts` |
 | [x] | Static demo boards | `src/lib/board/demoBoards.ts` |
-| [x] | Smoke test over required cases | `npm run smoke` — 27 checks |
+| [x] | Smoke test over required cases | `npm run smoke` — 57 checks |
 
 ---
 
-## Phase 2 — The validation pipeline ← **NEXT**
+## Phase 2 — The validation pipeline ✅
 
 The core of the role. Everything below is deterministic app code, not model judgment.
 
 | | Item | Detail |
 |---|---|---|
-| [ ] | `AIClassificationSchema` (Zod) | `src/lib/validation/aiClassification.ts` — coordinate with Person 2 before changing it |
-| [ ] | `ClassifyQuestionRequestSchema` | never trust the browser; `questionText` 1–300 chars |
-| [ ] | `buildRenderableBoard(raw, profile)` | the pipeline below, in order |
-| [ ] | `MIN_AI_CONFIDENCE = 0.78` | tunable constant, not a model decision |
-| [ ] | `resolveVocabularyChoice(id, profile)` | image hierarchy; must never block |
-| [ ] | `POST /api/classify-question` | returns `{ board }`, safe even when the classifier throws |
-| [ ] | `GET /api/health` | `{ ok, app, mode }` — no secrets, no env contents |
-| [ ] | `temporaryMockClassifier()` | so Person 2 is never a blocker |
+| [x] | `AIClassificationSchema` (Zod) | `src/lib/validation/aiClassification.ts` — coordinate with Person 2 before changing it |
+| [x] | `ClassifyQuestionRequestSchema` | never trust the browser; `questionText` 1–300 chars |
+| [x] | `buildRenderableBoard(raw, profile)` | the pipeline below, in order |
+| [x] | `MIN_AI_CONFIDENCE = 0.78` | tunable constant, not a model decision |
+| [x] | `resolveVocabularyChoice(id, profile)` | image hierarchy; must never block |
+| [x] | `POST /api/classify-question` | returns `{ board }`, safe even when the classifier throws |
+| [x] | `GET /api/health` | `{ ok, app, mode }` — no secrets, no env contents |
+| [x] | `temporaryMockClassifier()` | so Person 2 is never a blocker |
 
 Pipeline order — do not reorder:
 
@@ -61,18 +61,18 @@ raw → Zod safeParse → requiresFallback → confidence < 0.78 → questionTyp
 
 Fallback triggers (each returns `createFallbackBoard(reason)`):
 
-- [ ] AI call throws → `ai_error`
-- [ ] malformed JSON / Zod fails → `invalid_response`
-- [ ] `requiresFallback === true` → `low_confidence`
-- [ ] `confidence < 0.78` → `low_confidence`
-- [ ] `questionType === "unknown"` → `unknown_question`
-- [ ] every candidate ID unapproved → `no_approved_vocabulary`
-- [ ] image lookup fails → **not** a fallback; render text + icon
-- [ ] storage fails → **not** a fallback; use defaults
+- [x] AI call throws → `ai_error`
+- [x] malformed JSON / Zod fails → `invalid_response`
+- [x] `requiresFallback === true` → `low_confidence`
+- [x] `confidence < 0.78` → `low_confidence`
+- [x] `questionType === "unknown"` → `unknown_question`
+- [x] every candidate ID unapproved → `no_approved_vocabulary`
+- [x] image lookup fails → **not** a fallback; render text + icon
+- [x] storage fails → **not** a fallback; use defaults
 
 ---
 
-## Phase 3 — Images
+## Phase 3 — Images ← **NEXT**
 
 Priority order: personal photo → curated local → cached generated → pre-generated →
 background request → icon + text.
@@ -81,10 +81,10 @@ background request → icon + text.
 |---|---|---|
 | [ ] | `ImageCacheEntry` type | id, normalizedKey, vocabularyId, label, styleVersion, imageUrl, source, status, accessCount, lastAccessedAt, createdAt |
 | [ ] | `createImageCacheKey(label, styleVersion)` | lowercase, strip punctuation, hyphenate |
-| [ ] | `findPersonalVocabularyImage(profileId, vocabId)` | profile-scoped map is fine for MVP |
-| [ ] | Never await live generation in the request path | queue it, return the board now |
+| [x] | `findPersonalVocabularyImage(profileId, vocabId)` | profile-scoped map is fine for MVP |
+| [x] | Never await live generation in the request path | queue it, return the board now |
 | [ ] | `POST /api/images/resolve` | **only if** internal resolution proves insufficient |
-| [ ] | Web image search stays caregiver-approved | never automatic, never child-facing |
+| [x] | Web image search stays caregiver-approved | never automatic, never child-facing |
 
 ---
 
@@ -104,10 +104,10 @@ background request → icon + text.
 
 | | Item | Detail |
 |---|---|---|
-| [ ] | `NEXT_PUBLIC_APP_MODE=demo` respected | must work with **no** `OPENAI_API_KEY` |
+| [x] | `NEXT_PUBLIC_APP_MODE=demo` respected | must work with **no** `OPENAI_API_KEY` |
 | [x] | Breakfast / feelings / cups boards | built |
 | [x] | Uncertainty → fallback | built |
-| [ ] | Wire demo matcher into the API route | short-circuit before any model call |
+| [x] | Wire demo matcher into the API route | short-circuit before any model call |
 | [ ] | "Demo Mode" indicator in dev settings only | not in the pitch flow |
 
 ---
