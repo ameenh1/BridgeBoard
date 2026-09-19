@@ -3,7 +3,7 @@ name: Verify
 on:
   pull_request:
   push:
-    branches: [main, backend]
+    branches: [main, backend, codex/main-frontend-integration]
 
 permissions:
   contents: read
