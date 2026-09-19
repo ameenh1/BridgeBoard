@@ -22,10 +22,26 @@
       .partial { min-height: 1.5rem; color: #657797; font-style: italic; }
       .transcript { min-height: 2rem; font-size: 1.2rem; }
       .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+      .board-note { color: #4d5c76; font-size: 0.9rem; margin-bottom: 0; }
       .asset { border: 1px solid #d9e0ee; border-radius: 0.8rem; padding: 0.75rem; background: #fbfcff; }
+      .asset.verified { border-color: #4c9b72; background: #fbfffc; box-shadow: 0 0 0 3px #4c9b7212; }
+      .asset.pending { border-style: dashed; }
+      .asset.error { border-color: #bd5a5a; background: #fffafa; }
       .asset img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #edf1fa; border-radius: 0.6rem; }
+      .asset-loading-visual, .asset-empty-visual, .asset-error-visual { width: 100%; aspect-ratio: 1; border-radius: 0.6rem; display: grid; place-items: center; text-align: center; }
+      .asset-loading-visual { background: #eff6ff; color: #3157d5; }
+      .asset-loading-visual::before { content: ""; width: 2.5rem; height: 2.5rem; border: 0.3rem solid #cbd8ff; border-top-color: #3157d5; border-radius: 50%; animation: spin 1s linear infinite; }
+      .asset-empty-visual { border: 2px dashed #c8d1e2; color: #657797; }
+      .asset-empty-visual::after { content: "No option"; }
+      .asset-error-visual { background: #fff0f0; color: #8a3030; padding: 1rem; box-sizing: border-box; }
+      .asset-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.6rem; }
+      .badge { color: #17613c; background: #dff5e7; border-radius: 999px; padding: 0.2rem 0.45rem; font-size: 0.72rem; font-weight: 700; }
       .asset small { color: #657797; }
+      .asset-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 0.75rem; margin-top: 0.45rem; color: #4d5c76; font-size: 0.8rem; }
+      .asset-meta a { color: #3157d5; }
       code { background: #edf1fa; padding: 0.1rem 0.25rem; border-radius: 0.25rem; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .asset-loading-visual::before { animation: none; } }
     </style>
   </head>
   <body>
@@ -54,6 +70,7 @@
     <section class="panel">
       <strong>Visual board</strong>
       <p id="pipeline">Waiting for a finalized utterance.</p>
+      <p class="board-note">Only verified cached, web, or AI-generated images appear below.</p>
       <div id="board" class="board"></div>
     </section>
 
@@ -65,6 +82,7 @@
       const finalText = document.querySelector("#final");
       const pipeline = document.querySelector("#pipeline");
       const board = document.querySelector("#board");
+      const boardPanel = board.closest(".panel");
 
       let peerConnection = null;
       let mediaStream = null;
@@ -158,8 +176,9 @@
         let card = cards.get(resolution.vocabularyId);
         if (!card) {
           card = document.createElement("article");
-          card.className = "asset";
-          card.innerHTML = `<img alt=""><strong></strong><br><small></small>`;
+          card.className = "asset verified";
+          card.setAttribute("aria-live", "polite");
+          card.innerHTML = `<img alt="" loading="eager" decoding="async"><div class="asset-heading"><strong></strong><span class="badge">Verified</span></div><small></small><div class="asset-meta"></div>`;
           board.appendChild(card);
           cards.set(resolution.vocabularyId, card);
         }
@@ -170,7 +189,8 @@
         const card = document.createElement("article");
         card.className = "asset pending";
         card.dataset.pending = "true";
-        card.innerHTML = `<img src="/default-images/placeholder.svg" alt="Preparing visual assets"><strong>Preparing visuals</strong><br><small>Fast local fallback while assets resolve...</small>`;
+        card.setAttribute("aria-live", "polite");
+        card.innerHTML = `<div class="asset-loading-visual" role="img" aria-label="Waiting for a verified visual"></div><strong>Generating verified visuals</strong><br><small>Searching approved sources and generating in parallel...</small>`;
         board.appendChild(card);
       }
 
@@ -182,20 +202,66 @@
         removePreparingCard();
         const card = document.createElement("article");
         card.className = "asset";
-        card.innerHTML = `<img src="/default-images/placeholder.svg" alt="No explicit options recognized"><strong>No explicit options</strong><br><small>Try a short choice question or repeat.</small>`;
+        card.innerHTML = `<div class="asset-empty-visual" role="img" aria-label="No explicit option recognized"></div><strong>No explicit options</strong><br><small>Try a short choice question or repeat.</small>`;
         board.appendChild(card);
       }
 
+      function showResolutionError(resolution) {
+        removePreparingCard();
+        if (cards.has(resolution.vocabularyId)) return;
+        const card = document.createElement("article");
+        card.className = "asset error";
+        card.innerHTML = `<div class="asset-error-visual" role="img" aria-label="No verified image available">No verified image available</div><strong></strong><br><small></small>`;
+        card.querySelector("strong").textContent = resolution.vocabularyId;
+        card.querySelector("small").textContent = resolution.error || "The asset providers did not return a valid image.";
+        board.appendChild(card);
+      }
+
+      function sourceLabel(source) {
+        return {
+          local: "Local asset",
+          supabase: "Supabase cached asset",
+          web: "Verified web asset",
+          generated: "AI-generated asset",
+          placeholder: "Placeholder"
+        }[source] || source;
+      }
+
       function renderResolution(resolution) {
+        if (resolution.status !== "ready" || resolution.source === "placeholder") return;
         removePreparingCard();
         const card = cardFor(resolution);
         const image = card.querySelector("img");
         const label = card.querySelector("strong");
         const detail = card.querySelector("small");
+        const meta = card.querySelector(".asset-meta");
         image.src = resolution.assetUrl;
         image.alt = `${resolution.vocabularyId} ${resolution.status}`;
         label.textContent = resolution.vocabularyId;
-        detail.textContent = `${resolution.status} via ${resolution.source}`;
+        detail.textContent = `${sourceLabel(resolution.source)} · ready`;
+        meta.replaceChildren();
+        if (resolution.attribution) {
+          const attribution = document.createElement("span");
+          attribution.textContent = resolution.attribution;
+          meta.appendChild(attribution);
+        }
+        if (resolution.sourceUrl) {
+          const sourceLink = document.createElement("a");
+          sourceLink.href = resolution.sourceUrl;
+          sourceLink.target = "_blank";
+          sourceLink.rel = "noreferrer";
+          sourceLink.textContent = "View source";
+          meta.appendChild(sourceLink);
+        }
+        image.addEventListener("error", () => {
+          detail.textContent = "The verified asset could not be rendered in the browser.";
+          card.classList.remove("verified");
+          card.classList.add("error");
+        }, { once: true });
+        if (!board.dataset.revealed) {
+          board.dataset.revealed = "true";
+          boardPanel?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+        }
       }
 
       async function processFinalTranscript(transcript) {
@@ -203,9 +269,10 @@
         activeAssetRequest?.abort();
         activeAssetRequest = new AbortController();
         finalText.textContent = transcript;
-        pipeline.textContent = "Finalized transcript received. Showing fast fallback while assets resolve...";
+        pipeline.textContent = "Finalized transcript received. Waiting for verified assets...";
         board.replaceChildren();
         cards.clear();
+        delete board.dataset.revealed;
         showPreparingCard();
         try {
           const response = await fetch("/api/resolve-assets", {
@@ -235,22 +302,36 @@
                 if (!Array.isArray(event.requests) || event.requests.length === 0) {
                   showNoOptionsCard();
                   pipeline.textContent = "No explicit caregiver options were recognized.";
+                } else {
+                  pipeline.textContent = `Recognized ${event.requests.length} option${event.requests.length === 1 ? "" : "s"}. Searching and generating verified visuals...`;
                 }
               }
-              if (event.type === "fallback" || event.type === "ready" || event.type === "error") {
-                renderResolution(event.resolution);
-                pipeline.textContent = event.type === "fallback"
-                  ? "Fast fallback shown. Updating with cache, web, or generated assets..."
-                  : `Asset update: ${event.resolution.source}`;
+              if (event.type === "fallback") {
+                pipeline.textContent = "No verified image yet. Searching approved sources and generating in parallel...";
               }
-              if (event.type === "done") pipeline.textContent = "Asset pipeline complete.";
+              if (event.type === "ready") {
+                renderResolution(event.resolution);
+                pipeline.textContent = `${cards.size} verified visual${cards.size === 1 ? "" : "s"} shown. Loading any remaining assets...`;
+              }
+              if (event.type === "error") {
+                showResolutionError(event.resolution);
+                pipeline.textContent = "A verified asset could not be loaded for one or more options.";
+              }
+              if (event.type === "done") {
+                pipeline.textContent = cards.size > 0
+                  ? `${cards.size} verified visual${cards.size === 1 ? "" : "s"} shown. Asset pipeline complete.`
+                  : "No verified images were available.";
+              }
             }
             if (done) break;
           }
         } catch (error) {
           if (error?.name === "AbortError" || requestVersion !== assetRequestVersion) return;
           pipeline.textContent = `Asset pipeline failed: ${error instanceof Error ? error.message : String(error)}`;
-          showNoOptionsCard();
+          showResolutionError({
+            vocabularyId: "asset-pipeline",
+            error: error instanceof Error ? error.message : String(error)
+          });
         } finally {
           if (requestVersion === assetRequestVersion) activeAssetRequest = null;
         }

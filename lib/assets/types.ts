@@ -44,6 +44,7 @@ export type AssetResolution = {
   status: AssetStatus;
   source: AssetSource;
   assetUrl: string;
+  sourceUrl?: string;
   attribution?: string;
   error?: string;
 };

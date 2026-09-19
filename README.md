@@ -79,7 +79,7 @@ Open `http://localhost:3000`, allow microphone access, and say one of these:
 - “Do you want your blue cup or red cup?”
 - “Do you want waffles or pancakes?”
 
-The demo shows the partial transcript, finalized caregiver utterance, approved classification, local visual symbols immediately, and web/generated/cache replacements as they arrive. It keeps a process hot cache and ignores stale asset streams when caregiver turns arrive quickly. The demo also has typed transcript buttons, so the classifier and fallback UI can be tested without an API key. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
+The demo shows the partial transcript, finalized caregiver utterance, approved classification, and a visible loading state while real cached, searched, or generated images resolve. Only verified ready assets are rendered on the visual board, with their source shown; local fallback symbols are not presented as final assets. It keeps a process hot cache and ignores stale asset streams when caregiver turns arrive quickly. The demo also has typed transcript buttons, so the classifier and asset UI can be tested without microphone input. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
 
 For the automated local checks:
 

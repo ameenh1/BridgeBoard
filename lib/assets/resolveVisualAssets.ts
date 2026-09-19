@@ -162,6 +162,7 @@ async function resolveMiss(
         status: "ready",
         source: record.source,
         assetUrl: record.assetUrl,
+        sourceUrl: record.sourceUrl,
         attribution: record.attribution
       }
     });
@@ -211,8 +212,9 @@ export async function resolveVisualAssets(
           assetKey: request.cacheKey,
           vocabularyId: request.vocabularyId,
           status: "ready",
-          source: "local",
+          source: localRecord.source,
           assetUrl: localRecord.assetUrl,
+          sourceUrl: localRecord.sourceUrl,
           attribution: localRecord.attribution
         }
       });
@@ -239,6 +241,7 @@ export async function resolveVisualAssets(
           status: "ready",
           source: "supabase",
           assetUrl: sharedRecord.assetUrl,
+          sourceUrl: sharedRecord.sourceUrl,
           attribution: sharedRecord.attribution
         }
       });

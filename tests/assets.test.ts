@@ -122,7 +122,7 @@ describe("visual asset resolution", () => {
     });
 
     await result.pending;
-    expect(events).toEqual(["ready:local", "ready:local"]);
+    expect(events).toEqual(["ready:generated", "ready:generated"]);
     expect(calls).toBe(0);
   });
 });
