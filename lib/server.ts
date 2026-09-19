@@ -6,6 +6,7 @@ export {
   createSupabaseAssetCache,
   ensureSupabaseAssetBucket
 } from "./assets/supabaseAssetCache.js";
+export { createOpenAIRealtimeTranscriptionSession } from "./speech/openaiRealtimeServer.js";
 export type {
   ClassifyQuestionOptions
 } from "./ai/classifyQuestion.js";
@@ -17,3 +18,4 @@ export type {
   AssetProviders,
   SharedAssetCache
 } from "./assets/types.js";
+export type { OpenAIRealtimeTranscriptionSessionOptions } from "./speech/openaiRealtimeServer.js";

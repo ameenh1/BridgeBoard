@@ -22,6 +22,7 @@ OPENAI_API_KEY=your_key_here
 OPENAI_TEXT_MODEL=gpt-5.6-luna
 OPENAI_SEARCH_MODEL=gpt-5.6-luna
 OPENAI_IMAGE_MODEL=gpt-image-2.5-flare
+OPENAI_REALTIME_TRANSCRIPTION_MODEL=gpt-live-transcribe
 ```
 
 Never use a `NEXT_PUBLIC_` prefix and never commit `.env.local`. Live calls are disabled by setting `AI_LIVE_CLASSIFIER_ENABLED=false`, `AI_ASSET_SEARCH_ENABLED=false`, or `AI_IMAGE_GENERATION_ENABLED=false`.
@@ -61,6 +62,33 @@ const result = await resolveVisualAssets({
 
 await result.pending;
 ```
+
+## Realtime caregiver microphone
+
+The browser-safe `createRealtimeTranscriptionController()` connects the microphone through WebRTC to OpenAI's Realtime API. The server-only `createOpenAIRealtimeTranscriptionSession()` receives the browser SDP offer and calls `/v1/realtime/calls`; the normal OpenAI API key never reaches the browser. The session uses `gpt-live-transcribe`, emits partial transcript deltas, and emits a finalized transcript after server voice-activity detection.
+
+The repository includes a runnable local demo that connects the full flow:
+
+```powershell
+npm run demo:realtime
+```
+
+Open `http://localhost:3000`, allow microphone access, and say one of these:
+
+- “Do you want your blue cup or red cup?”
+- “Do you want waffles or pancakes?”
+
+The demo shows the partial transcript, finalized caregiver utterance, approved classification, placeholder visuals immediately, and web/generated/cache replacements as they arrive. The demo also has typed transcript buttons, so the classifier and fallback UI can be tested without an API key. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
+
+For the automated local checks:
+
+```powershell
+npm test
+npm run typecheck
+npm audit --omit=dev
+```
+
+The production frontend should use the same controller and point `sessionEndpoint` at an authenticated application route. Do not expose the local demo server publicly without adding authentication and rate limiting.
 
 ## Safety and boundaries
 
