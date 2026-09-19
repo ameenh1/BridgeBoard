@@ -36,7 +36,12 @@ export function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
     if (!email || password.length < 8) {
-      setError("Enter an email and a password with at least 8 characters.");
+      if (mode === "signIn") {
+        setError("Account not found or the password is incorrect.");
+        setShowSignupAction(true);
+      } else {
+        setError("Use a valid email and a password with at least 8 characters.");
+      }
       return;
     }
     setBusy(true);
