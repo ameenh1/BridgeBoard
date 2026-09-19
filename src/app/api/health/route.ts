@@ -1,4 +1,5 @@
 import { hasClassifierCredentials } from "@/lib/ai/classifyQuestion";
+import { isAuthConfigured } from "@/lib/auth/authConfig";
 import { hasAssetProviders } from "@/lib/assets/openaiAssetProviders";
 import { isAssetStreamConfigured } from "@/lib/assets/assetToken";
 import { listAvailableImages } from "@/lib/images/imageManifest";
@@ -26,6 +27,9 @@ export async function GET(): Promise<Response> {
       process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
         ? "configured"
         : "optional_unconfigured",
+    // Whether caregiver accounts are offered. Says nothing about which key is
+    // set, and the board is fully usable either way.
+    accounts: isAuthConfigured() ? "configured" : "optional_unconfigured",
     aiVocabularyCount: getAIAllowedVocabulary().length,
     imageAssetCount: listAvailableImages().length,
   });

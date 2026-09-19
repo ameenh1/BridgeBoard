@@ -25,6 +25,8 @@ import {
   updateSettings,
 } from "@/lib/storage/settings";
 import { endLocalSession, hasLocalSession, startLocalSession } from "@/lib/storage/localSession";
+import { fetchSession, signOut } from "@/lib/auth/authClient";
+import type { AuthUser } from "@/types/auth";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
@@ -97,6 +99,7 @@ function BridgeBoardShell() {
   const [microphoneError, setMicrophoneError] = useState<string>();
   const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
 
   const boardController = useRef<BoardSessionController | null>(null);
   const realtimeController = useRef<RealtimeTranscriptionController | null>(null);
@@ -127,6 +130,25 @@ function BridgeBoardShell() {
         if (result) setHealth(result);
       })
       .catch(() => undefined);
+    return () => aborter.abort();
+  }, []);
+
+  /**
+   * Restores a signed-in session on a return visit. An unreachable or absent
+   * session is not an error and is never surfaced: the shell simply stays on
+   * whatever stage the local state chose, so the board remains one tap away
+   * whether or not accounts are working.
+   */
+  useEffect(() => {
+    const aborter = new AbortController();
+    void fetchSession(aborter.signal).then((result) => {
+      if (result.status !== "signed_in") return;
+      setAuthUser(result.user);
+      startLocalSession();
+      setStage((current) =>
+        current === "login" ? (hasStoredSettings() ? "profile" : "setup") : current,
+      );
+    });
     return () => aborter.abort();
   }, []);
 
@@ -251,8 +273,25 @@ function BridgeBoardShell() {
     clearSettings();
     clearHistory();
     endLocalSession();
+    // Resetting the device should not leave an account still signed in on it.
+    void signOut();
+    setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
     setHistory([]);
+    setStage("login");
+    setView("board");
+  }, [stopListening]);
+
+  /**
+   * Signing out ends the account session only. Settings and history are the
+   * child's and stay on the device — losing a board configuration because a
+   * caregiver signed out of an optional account would be the wrong trade.
+   */
+  const handleSignOut = useCallback(() => {
+    void stopListening();
+    void signOut();
+    setAuthUser(null);
+    endLocalSession();
     setStage("login");
     setView("board");
   }, [stopListening]);
@@ -267,6 +306,11 @@ function BridgeBoardShell() {
     return (
       <LoginScreen
         onContinue={() => {
+          startLocalSession();
+          setStage(hasStoredSettings() ? "profile" : "setup");
+        }}
+        onSignedIn={(user) => {
+          setAuthUser(user);
           startLocalSession();
           setStage(hasStoredSettings() ? "profile" : "setup");
         }}
@@ -329,6 +373,19 @@ function BridgeBoardShell() {
             </span>
             {name || "Caregiver"}
           </button>
+
+          {/* Only shown when an account is actually in use. Nothing here
+              nags an unsigned-in caregiver to create one. */}
+          {authUser ? (
+            <button
+              className="signout-button"
+              type="button"
+              onClick={handleSignOut}
+              title={`Signed in as ${authUser.email}`}
+            >
+              Sign out
+            </button>
+          ) : null}
         </div>
       </header>
 
