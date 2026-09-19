@@ -32,7 +32,7 @@ Status as of the `backend` branch. Check items off as they land.
 | [x] | Allowlist helpers | `src/lib/vocabulary/vocabularyHelpers.ts` |
 | [x] | Fallback board exists and is tested | `src/lib/board/createFallbackBoard.ts` |
 | [x] | Static demo boards | `src/lib/board/demoBoards.ts` |
-| [x] | Smoke test over required cases | `npm run smoke` — 101 checks |
+| [x] | Smoke test over required cases | `npm run smoke` — 104 checks |
 
 ---
 
@@ -79,10 +79,11 @@ background request → icon + text.
 
 | | Item | Detail |
 |---|---|---|
-| [ ] | `ImageCacheEntry` type | id, normalizedKey, vocabularyId, label, styleVersion, imageUrl, source, status, accessCount, lastAccessedAt, createdAt |
+| [ ] | `ImageCacheEntry` type (deferred: nothing to cache until assets exist) | id, normalizedKey, vocabularyId, label, styleVersion, imageUrl, source, status, accessCount, lastAccessedAt, createdAt |
 | [ ] | `createImageCacheKey(label, styleVersion)` | lowercase, strip punctuation, hyphenate |
 | [x] | `findPersonalVocabularyImage(profileId, vocabId)` | profile-scoped map is fine for MVP |
 | [x] | Never await live generation in the request path | queue it, return the board now |
+| [x] | Build-time image manifest | `imageUrl` only emitted when the file exists; assets light up automatically when dropped in |
 | [ ] | `POST /api/images/resolve` | **only if** internal resolution proves insufficient |
 | [x] | Web image search stays caregiver-approved | never automatic, never child-facing |
 

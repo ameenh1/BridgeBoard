@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "prebuild": "tsx scripts/generateImageManifest.ts",
+    "images:manifest": "tsx scripts/generateImageManifest.ts"
   },
   "dependencies": {
     "lucide-react": "^1.47.0",

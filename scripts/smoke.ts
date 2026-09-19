@@ -10,6 +10,7 @@ import {
 } from "@/lib/board/demoBoards";
 import { temporaryMockClassifier } from "@/lib/ai/mockClassifier";
 import { getFullBoardCategories } from "@/lib/board/fullBoard";
+import { imageExists } from "@/lib/images/imageManifest";
 import {
   clearSettings,
   loadSettings,
@@ -77,7 +78,11 @@ async function main() {
   check("feelings has 4 choices", feelings.choices.length === 4);
 
   const cups = getPersonalCupsDemoBoard();
-  check("cups marked personal", cups.choices.every((c) => c.source === "personal"));
+  check("cups board has both cups", cups.choices.length === 2);
+  check(
+    "cups always speak, with or without photos",
+    cups.choices.every((c) => c.spokenPhrase.length > 0),
+  );
 
   const fb = createFallbackBoard("low_confidence");
   check("fallback flagged", fb.isFallback === true);
@@ -141,15 +146,30 @@ async function main() {
     }),
     profile,
   );
+  // These hold whether or not the photo assets have been produced yet, so they
+  // will not start failing the moment Person 2 drops real files into public/.
   check(
-    "personal photo wins over generic",
-    cupsBoard.choices.every((c) => c.source === "personal"),
-    cupsBoard.choices.map((c) => c.source),
+    "a choice claims an image source only when it has an image",
+    cupsBoard.choices.every((c) =>
+      c.imageUrl ? c.source === "personal" || c.source === "curated" : c.source === "core",
+    ),
+    cupsBoard.choices.map((c) => [c.source, c.imageUrl]),
   );
   check(
-    "personal photo url resolved",
-    cupsBoard.choices[0]?.imageUrl === "/demo-photos/blue-cup.png",
-    cupsBoard.choices[0]?.imageUrl,
+    "no choice emits a url for a file that does not exist",
+    cupsBoard.choices.every((c) => !c.imageUrl || imageExists(c.imageUrl)),
+    cupsBoard.choices.map((c) => c.imageUrl),
+  );
+  check(
+    "photo missing still leaves a usable tile",
+    cupsBoard.choices.every((c) => c.label.length > 0 && Boolean(c.iconKey)),
+  );
+  check(
+    "personal photo is preferred when it exists",
+    imageExists("/demo-photos/blue-cup.png")
+      ? cupsBoard.choices[0]?.source === "personal"
+      : cupsBoard.choices[0]?.source === "core",
+    cupsBoard.choices[0]?.source,
   );
 
   console.log("\n=== Pipeline: every failure route ===");

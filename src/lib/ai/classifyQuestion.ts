@@ -19,3 +19,14 @@ export async function classifyQuestion(questionText: string): Promise<unknown> {
 export function hasClassifierCredentials(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
+
+/**
+ * Flip this to false in the same commit that wires up the real classifier.
+ * Surfaced by /api/health so nobody spends integration time wondering whether
+ * they are looking at live model output or the mock.
+ */
+const USING_MOCK = true;
+
+export function isUsingMockClassifier(): boolean {
+  return USING_MOCK;
+}

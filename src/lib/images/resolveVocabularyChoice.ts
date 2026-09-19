@@ -2,6 +2,7 @@ import type { RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import type { VocabularyItem } from "@/types/vocabulary";
 import { findPersonalVocabularyImage } from "@/lib/storage/personalVocabulary";
+import { imageExists } from "./imageManifest";
 
 /**
  * Resolve the visual for one approved vocabulary item.
@@ -9,6 +10,10 @@ import { findPersonalVocabularyImage } from "@/lib/storage/personalVocabulary";
  * Priority: personal photo → curated local image → cached generated →
  * icon + text. The last rung always succeeds, which is the point: a missing
  * image degrades the presentation, never the ability to communicate.
+ *
+ * A catalog entry may name an image that has not been produced yet. We check
+ * the build-time manifest rather than trusting the catalog, so an unproduced
+ * asset becomes a clean icon-and-text tile instead of a broken-image box.
  *
  * Nothing here waits on image generation. If we don't have a picture now, the
  * board ships with an icon now.
@@ -27,7 +32,7 @@ export async function resolveVocabularyChoice(
   // 1. A caregiver's own photo beats anything generic.
   try {
     const personal = await findPersonalVocabularyImage(profile.id, item.id);
-    if (personal) {
+    if (personal && imageExists(personal.imageUrl)) {
       return { ...base, imageUrl: personal.imageUrl, source: "personal" };
     }
   } catch (error) {
@@ -36,7 +41,7 @@ export async function resolveVocabularyChoice(
   }
 
   // 2. Curated illustration shipped with the app.
-  if (item.imageUrl) {
+  if (item.imageUrl && imageExists(item.imageUrl)) {
     return { ...base, imageUrl: item.imageUrl, source: "curated" };
   }
 

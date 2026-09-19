@@ -1,0 +1,7 @@
+Curated AAC illustrations go here, named to match `imageUrl` in
+src/lib/vocabulary/approvedVocabulary.ts — e.g. waffles.png, pancakes.png.
+
+Files dropped here are picked up automatically: `npm run build` regenerates
+src/lib/images/imageManifest.ts, and any catalog entry whose image now exists
+starts rendering it. Until then those tiles show label + icon, which is the
+intended fallback, not a bug.
