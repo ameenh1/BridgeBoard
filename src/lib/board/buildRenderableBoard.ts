@@ -9,7 +9,9 @@ import {
   isAIAllowedVocabulary,
 } from "@/lib/vocabulary/vocabularyHelpers";
 import { normalizeVocabularyId } from "@/lib/vocabulary/vocabularyAliases";
-import { resolveVocabularyChoice } from "@/lib/images/resolveVocabularyChoice";
+import { createAssetKey } from "@/lib/assets/assetKeys";
+import { toRenderableChoice, iconForCategory } from "./renderableChoice";
+import { validatedDynamicConcepts } from "./dynamicConcepts";
 import { getBoardTitle, mapQuestionType } from "./boardTitles";
 import { createFallbackBoard } from "./createFallbackBoard";
 
@@ -33,6 +35,7 @@ const STANDARD_ACTIONS: BoardAction[] = [
 export async function buildRenderableBoard(
   rawResponse: unknown,
   profile: ChildProfile,
+  originalQuestionText?: string,
 ): Promise<RenderableBoard> {
   // Gate 1: shape. Malformed or non-JSON output dies here.
   const parsed = AIClassificationSchema.safeParse(rawResponse);
@@ -65,25 +68,42 @@ export async function buildRenderableBoard(
     .map(normalizeVocabularyId)
     .filter(isAIAllowedVocabulary)
     .map(getApprovedVocabularyItem)
-    .filter((item) => item !== undefined)
-    .slice(0, profile.maxChoices);
+    .filter((item) => item !== undefined);
 
-  if (approvedItems.length === 0) {
+  const questionText = originalQuestionText?.trim() || result.questionText.trim();
+  const catalogLabels = new Set(approvedItems.map((item) => item.label.toLowerCase()));
+  const dynamicItems = validatedDynamicConcepts(questionText, result.explicitVisualConcepts)
+    .filter((item) => !catalogLabels.has(item.normalized))
+    .map((item) => ({
+      id: item.id,
+      choiceKey: item.id,
+      label: item.concept,
+      spokenPhrase: item.concept,
+      iconKey: iconForCategory(result.topic),
+      origin: "dynamic" as const,
+      visual: {
+        assetKey: createAssetKey(item.normalized),
+        status: "pending" as const,
+      },
+    }));
+
+  const choices = [
+    ...approvedItems.map((item) => toRenderableChoice(item)),
+    ...dynamicItems,
+  ].slice(0, profile.maxChoices);
+
+  if (choices.length === 0) {
     return createFallbackBoard("no_approved_vocabulary");
   }
-
-  // Images resolve in parallel and each rung is guaranteed to produce a choice.
-  const choices = await Promise.all(
-    approvedItems.map((item) => resolveVocabularyChoice(item, profile)),
-  );
 
   return {
     boardId: crypto.randomUUID(),
     title: getBoardTitle(result.questionType, result.topic),
-    questionText: result.questionText,
+    questionText,
     boardType: mapQuestionType(result.questionType),
     choices,
     actions: STANDARD_ACTIONS,
     isFallback: false,
+    isRefreshing: false,
   };
 }

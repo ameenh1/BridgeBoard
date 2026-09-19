@@ -2,34 +2,45 @@
   "name": "bridgeboard",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "smoke": "tsx scripts/smoke.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run smoke && npm run build && npm audit --omit=dev",
     "prebuild": "tsx scripts/generateImageManifest.ts",
     "images:manifest": "tsx scripts/generateImageManifest.ts",
-    "images:check": "tsx scripts/checkImages.ts"
+    "images:check": "tsx scripts/checkImages.ts",
+    "supabase:setup-assets": "tsx scripts/setupSupabaseAssets.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.116.0",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
     "openai": "^7.19.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "sharp": "0.35.4",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "24.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "5.9.2",
+    "vitest": "5.0.1"
   }
 }

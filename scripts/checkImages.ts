@@ -33,7 +33,7 @@ if (missing.length > 0) {
 }
 
 const orphans = listAvailableImages().filter(
-  (url) => !expected.some((e) => e.url === url) && !url.includes("/demo-photos/"),
+  (url) => !expected.some((e) => e.url === url),
 );
 if (orphans.length > 0) {
   console.log("\nIN public/ BUT NOT REFERENCED BY THE CATALOG");

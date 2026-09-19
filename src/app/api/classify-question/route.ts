@@ -1,13 +1,15 @@
-import type { RenderableBoard } from "@/types/board";
+import type { ClassifyQuestionResponse } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE } from "@/types/profile";
 import { classifyQuestion } from "@/lib/ai/classifyQuestion";
 import { buildRenderableBoard } from "@/lib/board/buildRenderableBoard";
 import { createFallbackBoard } from "@/lib/board/createFallbackBoard";
-import { getDemoBoardForQuestion } from "@/lib/board/demoBoards";
-import { limitChoices } from "@/lib/board/limitChoices";
-import { isDemoMode } from "@/lib/demo/demoMode";
 import { ClassifyQuestionRequestSchema } from "@/lib/validation/requestSchemas";
+import { buildVisualAssetRequests } from "@/lib/assets/visualRequests";
+import { createAssetStreamDescriptor } from "@/lib/assets/assetToken";
+import { hasAssetProviders } from "@/lib/assets/openaiAssetProviders";
+
+export const runtime = "nodejs";
 
 /**
  * POST /api/classify-question
@@ -34,29 +36,34 @@ export async function POST(request: Request): Promise<Response> {
   const { questionText } = parsed.data;
   const profile = mergeProfile(parsed.data.profile);
 
-  // Known demo prompts never touch the network. They still obey the profile —
-  // a scripted board is not an excuse to ignore board complexity.
-  if (isDemoMode()) {
-    const demoBoard = getDemoBoardForQuestion(questionText);
-    if (demoBoard) {
-      return json({ board: limitChoices(demoBoard, profile) });
-    }
-  }
-
   let raw: unknown;
   try {
-    raw = await classifyQuestion(questionText);
+    raw = await classifyQuestion(questionText, { signal: request.signal });
   } catch (error) {
-    console.error("[classify-question] classifier failure", error);
+    console.error("[classify-question] classifier failure", safeErrorCode(error));
     return json({ board: createFallbackBoard("ai_error") });
   }
 
   try {
-    const board = await buildRenderableBoard(raw, profile);
-    return json({ board });
+    let board = await buildRenderableBoard(raw, profile, questionText);
+    const requests = buildVisualAssetRequests(board);
+    const assetStream = hasAssetProviders()
+      ? createAssetStreamDescriptor(board.boardId, requests)
+      : undefined;
+    if (!assetStream && requests.length > 0) {
+      board = {
+        ...board,
+        choices: board.choices.map((choice) =>
+          choice.visual.status === "pending"
+            ? { ...choice, visual: { ...choice.visual, status: "unavailable" as const } }
+            : choice,
+        ),
+      };
+    }
+    return json({ board, ...(assetStream ? { assetStream } : {}) });
   } catch (error) {
     // A bug in our own pipeline must not take communication down with it.
-    console.error("[classify-question] board construction failure", error);
+    console.error("[classify-question] board construction failure", safeErrorCode(error));
     return json({ board: createFallbackBoard("ai_error") });
   }
 }
@@ -70,6 +77,14 @@ function mergeProfile(partial: { id?: string; maxChoices?: 2 | 4 | 6 } | undefin
   };
 }
 
-function json(payload: { board: RenderableBoard }, status = 200): Response {
+function json(payload: ClassifyQuestionResponse, status = 200): Response {
   return Response.json(payload, { status });
+}
+
+function safeErrorCode(error: unknown): string {
+  if (!(error instanceof Error)) return "unknown";
+  if (error.name === "AbortError" || error.name === "TimeoutError") return "aborted";
+  if (/unconfigured/i.test(error.message)) return "unconfigured";
+  if (/invalid/i.test(error.message)) return "invalid_response";
+  return "upstream_error";
 }

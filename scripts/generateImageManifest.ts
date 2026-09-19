@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const IMAGE_DIRS = ["default-images", "demo-photos"];
+const IMAGE_DIRS = ["default-images"];
 const OUT = path.join("src", "lib", "images", "imageManifest.ts");
 
 // Extension allowlist, so README notes and .gitkeep placeholders in these

@@ -1,24 +1,26 @@
-/**
- * The frontend contract.
- *
- * A `RenderableBoard` is the ONLY shape the UI receives. Everything in it is
- * trusted and deterministic: labels and spoken phrases come from our approved
- * vocabulary catalog, never from model output. The AI can propose vocabulary
- * IDs; it can never author a word that a communicator says out loud.
- */
+/** Browser-safe visual state. Image work never controls whether a choice works. */
+export type ChoiceOrigin = "catalog" | "personal" | "dynamic";
+export type VisualStatus = "ready" | "pending" | "unavailable";
+export type VisualSource = "curated" | "personal" | "cache" | "web" | "generated";
 
-/** Where a choice's presentation came from, after image resolution. */
-export type ChoiceSource = "core" | "personal" | "cached_generated" | "curated";
+export type ChoiceVisual = {
+  assetKey: string;
+  status: VisualStatus;
+  source?: VisualSource;
+  url?: string;
+  sourceUrl?: string;
+  attribution?: string;
+};
 
 export type RenderableChoice = {
   id: string;
+  /** Stable across board revisions for the same concept. */
+  choiceKey: string;
   label: string;
   spokenPhrase: string;
-
-  imageUrl?: string;
-  iconKey?: string;
-
-  source: ChoiceSource;
+  iconKey: string;
+  origin: ChoiceOrigin;
+  visual: ChoiceVisual;
 };
 
 /**
@@ -36,6 +38,7 @@ export type BoardAction =
 export type BoardType =
   | "choice"
   | "feelings_needs"
+  | "body_needs"
   | "yes_no"
   | "fallback"
   | "full_board";
@@ -52,6 +55,8 @@ export type RenderableBoard = {
   actions: BoardAction[];
 
   isFallback: boolean;
+  /** Non-blocking hint. It must never disable the board or its actions. */
+  isRefreshing: boolean;
 };
 
 /**
@@ -63,5 +68,15 @@ export type FallbackReason =
   | "invalid_response"
   | "low_confidence"
   | "unknown_question"
-  | "no_approved_vocabulary"
-  | "demo_fallback";
+  | "no_approved_vocabulary";
+
+export type AssetStreamDescriptor = {
+  endpoint: "/api/resolve-assets";
+  token: string;
+  expiresAt: string;
+};
+
+export type ClassifyQuestionResponse = {
+  board: RenderableBoard;
+  assetStream?: AssetStreamDescriptor;
+};

@@ -1,11 +1,12 @@
-import type { ChoiceSource, RenderableChoice } from "@/types/board";
+import type { RenderableChoice } from "@/types/board";
 import type { VocabularyItem } from "@/types/vocabulary";
+import { createAssetKey } from "@/lib/assets/assetKeys";
 import { imageExists } from "@/lib/images/imageManifest";
 
 /**
  * Turn a trusted catalog entry into something the UI can render.
  *
- * Synchronous and dependency-free on purpose: fallback and demo boards must
+ * Synchronous and dependency-free on purpose: fallback and manual boards must
  * build with no network and no filesystem. The richer async resolver (personal
  * photos, cached generated images) wraps this later rather than replacing it.
  *
@@ -15,24 +16,41 @@ import { imageExists } from "@/lib/images/imageManifest";
  */
 export function toRenderableChoice(
   item: VocabularyItem,
-  source?: ChoiceSource,
 ): RenderableChoice {
   const imageUrl = item.imageUrl && imageExists(item.imageUrl) ? item.imageUrl : undefined;
+  const assetKey = createAssetKey(item.label);
 
   return {
     id: item.id,
+    choiceKey: item.id,
     label: item.label,
     spokenPhrase: item.spokenPhrase,
-    imageUrl,
-    iconKey: item.iconKey,
-    source: source ?? inferSource(item, imageUrl),
+    iconKey: item.iconKey ?? iconForCategory(item.category),
+    origin: item.id.startsWith("personal_") ? "personal" : "catalog",
+    visual: imageUrl
+      ? {
+          assetKey,
+          status: "ready",
+          source: item.id.startsWith("personal_") ? "personal" : "curated",
+          url: imageUrl,
+        }
+      : { assetKey, status: "pending" },
   };
 }
 
-function inferSource(item: VocabularyItem, resolvedImage: string | undefined): ChoiceSource {
-  // Without a real image the tile is text and an icon, whatever the catalog
-  // intended it to be — reporting "curated" would misdescribe what shipped.
-  if (!resolvedImage) return "core";
-  if (item.id.startsWith("personal_")) return "personal";
-  return "curated";
+export function iconForCategory(category: string): string {
+  return ({
+    food: "utensils",
+    drink: "cup-soda",
+    feelings: "smile",
+    needs: "life-buoy",
+    body_needs: "heart-pulse",
+    bathroom: "door-open",
+    activities: "blocks",
+    people: "user",
+    places: "map-pin",
+    sensory: "waves",
+    transitions: "arrow-right-left",
+    core: "message-circle",
+  } as Record<string, string>)[category] ?? "shapes";
 }

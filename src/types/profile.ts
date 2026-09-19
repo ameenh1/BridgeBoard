@@ -20,7 +20,7 @@ export type ChildProfile = {
 
 /** Used whenever no profile is stored, or stored settings fail to parse. */
 export const DEFAULT_PROFILE: ChildProfile = {
-  id: "demo-profile",
+  id: "default-profile",
   maxChoices: 4,
   visuals: "photos_first",
   speechEnabled: true,

@@ -42,7 +42,7 @@ export function mapQuestionType(questionType: QuestionType): BoardType {
     case "yes_no":
       return "yes_no";
     case "body_needs":
-      return "feelings_needs";
+      return "body_needs";
     case "unknown":
       return "fallback";
   }

@@ -29,5 +29,6 @@ export function createFallbackBoard(reason: FallbackReason): RenderableBoard {
     choices,
     actions: ["repeat", "help", "need_more_time", "full_board"],
     isFallback: true,
+    isRefreshing: false,
   };
 }

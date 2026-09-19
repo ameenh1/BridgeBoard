@@ -1,14 +1,7 @@
 import type { VocabularyItem } from "@/types/vocabulary";
 import { CORE_VOCABULARY } from "./coreVocabulary";
 
-/**
- * Context vocabulary the classifier may propose for a given question.
- *
- * Kept deliberately small — only enough to cover the demo paths (breakfast,
- * feelings, needs, personal cups). Grow this as demos require, not
- * speculatively: every entry here is text we are promising to speak on a
- * communicator's behalf.
- */
+/** Context vocabulary the classifier may propose for a caregiver question. */
 const CONTEXT_VOCABULARY: VocabularyItem[] = [
   // Food
   {
@@ -268,29 +261,6 @@ const CONTEXT_VOCABULARY: VocabularyItem[] = [
     iconKey: "footprints",
     allowedForAI: true,
     isCore: true,
-  },
-
-  // Personal items — these carry caregiver-supplied photos and exist to show
-  // that a personal image can stand in for a generic one.
-  {
-    id: "personal_blue_cup",
-    label: "Blue Cup",
-    spokenPhrase: "I want my blue cup.",
-    category: "drink",
-    imageUrl: "/demo-photos/blue-cup.png",
-    iconKey: "cup-soda",
-    allowedForAI: true,
-    isCore: false,
-  },
-  {
-    id: "personal_red_cup",
-    label: "Red Cup",
-    spokenPhrase: "I want my red cup.",
-    category: "drink",
-    imageUrl: "/demo-photos/red-cup.png",
-    iconKey: "cup-soda",
-    allowedForAI: true,
-    isCore: false,
   },
 ];
 

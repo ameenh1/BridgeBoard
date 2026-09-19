@@ -1,220 +1,40 @@
 # BridgeBoard
 
-**Conversation in. Choice out.**
+BridgeBoard is a Next.js backend for turning finalized caregiver questions into immediately usable AAC boards. Text, speech, icons, and support actions are returned first; web or generated images upgrade individual choices through a separate stream without blocking or clearing the board.
 
-A context-aware AAC app. A caregiver asks a question out loud; BridgeBoard turns it
-into a simple visual board of *optional* vocabulary; the communicator chooses what is
-actually said.
+## Local setup
 
-Built for VTHacks 2026.
+Requires Node.js 22.12 or newer.
 
----
-
-## The one thing to understand
-
-> BridgeBoard does not decide what a person means. It uses a caregiver's spoken
-> context to surface optional, validated vocabulary choices. The communicator can
-> select, reject, ask for more time, or always return to their full AAC board.
-
-And the rule that follows from it:
-
-> **The AI is allowed to fail. Communication isn't.**
-
-The app must work with no microphone, no AI, no generated images, and no network.
-Those services improve the demo; they are never required to communicate.
-
----
-
-## How the safety layer works
-
-The model never writes a word that a communicator says. It can only propose
-**vocabulary IDs** from an approved catalog. Everything spoken is authored by us.
-
-```
-caregiver question
-      ↓
-classifier  ──────────────►  AIClassification (untrusted)
-      ↓
-Zod schema validation             ← malformed shape? fallback
-      ↓
-requiresFallback / confidence     ← below 0.78? fallback
-      ↓
-question type check               ← "unknown"? fallback
-      ↓
-approved-vocabulary allowlist     ← invented IDs dropped
-      ↓
-profile.maxChoices                ← board complexity enforced
-      ↓
-trusted catalog lookup            ← labels + spoken phrases come from here
-      ↓
-image resolution                  ← personal photo → curated → icon + text
-      ↓
-RenderableBoard  ──────────────►  the UI
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+npm run dev
 ```
 
-The model is shown `{ id, label, category }` only. `spokenPhrase` is withheld, so
-there is no path by which model output becomes speech.
+Set `OPENAI_API_KEY`, the OpenAI model variables, and a strong `ASSET_STREAM_SECRET` in `.env.local`. None of these variables may use a `NEXT_PUBLIC_` prefix.
 
----
+The optional shared cache uses `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and a private `bridgeboard-ai-assets` bucket. Apply the checked-in migration, then run:
 
-## Setup
-
-```bash
-npm install
+```powershell
+npm run supabase:setup-assets
 ```
 
-Create `.env.local` in the repo root:
+If Supabase is absent or unavailable, classification and live image resolution continue without the shared cache.
 
-```env
-NEXT_PUBLIC_APP_MODE=demo
-# OPENAI_API_KEY=       # not needed yet — the classifier is still mocked
+## Routes
+
+- `POST /api/classify-question` returns the immediately usable board and an optional signed asset-stream descriptor.
+- `POST /api/resolve-assets` streams per-choice NDJSON image updates.
+- `POST /api/realtime/session` exchanges a WebRTC SDP offer for a server-created OpenAI Realtime session.
+- `GET /api/health` reports configured capabilities without exposing secrets.
+
+See [AI backend integration](docs/AI_BACKEND_INTEGRATION.md) for the frontend contract and stable-board behavior.
+
+## Verification
+
+```powershell
+npm run verify
 ```
 
-> **Important:** `NEXT_PUBLIC_*` values are compiled into the build, not read at
-> runtime. Create `.env.local` **before** you build, and rebuild after changing it,
-> or demo mode silently won't engage.
-
-```bash
-npm run dev      # http://localhost:3000
-npm run build    # production build — must be clean before merging to main
-npm run smoke    # backend reliability checks, no browser needed
-npm run lint
-```
-
-`.env.local` is gitignored. Never commit a key.
-
----
-
-## API
-
-### `POST /api/classify-question`
-
-```jsonc
-// request
-{
-  "questionText": "Do you want waffles or pancakes?",
-  "profile": { "id": "demo-profile", "maxChoices": 4 }   // optional
-}
-```
-
-```jsonc
-// response — always { board }, even on failure
-{
-  "board": {
-    "boardId": "…",
-    "title": "What would you like to eat?",
-    "questionText": "Do you want waffles or pancakes?",
-    "boardType": "choice",
-    "choices": [
-      {
-        "id": "food_waffles",
-        "label": "Waffles",
-        "spokenPhrase": "I want waffles.",
-        "imageUrl": "/default-images/waffles.png",
-        "iconKey": "utensils",
-        "source": "curated"
-      }
-    ],
-    "actions": ["help", "repeat", "something_else", "need_more_time", "full_board"],
-    "isFallback": false
-  }
-}
-```
-
-There is no error shape to handle. If anything upstream breaks, `board` is simply a
-fallback with `isFallback: true`. Internal reasons stay in the server log — a
-communicator never sees `"low_confidence"`.
-
-### `GET /api/health`
-
-```json
-{ "ok": true, "app": "bridgeboard", "mode": "demo" }
-```
-
----
-
-## Integration contracts
-
-### Frontend
-
-```ts
-const res = await fetch("/api/classify-question", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ questionText, profile: { id, maxChoices } }),
-});
-const { board } = await res.json();
-```
-
-- `choices[].spokenPhrase` is the text to speak — never `label`
-- `actions` is the persistent bar; `full_board` is always present
-- `isFallback` selects the fallback presentation
-- A choice may have no `imageUrl`. Render `label` + `iconKey` instead —
-  **a missing image must never block communication**
-- Settings: `loadSettings()` / `saveSettings()` / `updateSettings()` from
-  `@/lib/storage/settings`. Corrupted or blocked storage returns defaults
-- Full Board data: `getFullBoardCategories()` from `@/lib/board/fullBoard`
-
-No AI-specific parsing belongs in a component.
-
-### AI
-
-One seam, in `src/lib/ai/classifyQuestion.ts`:
-
-```ts
-export async function classifyQuestion(questionText: string): Promise<unknown>;
-```
-
-`unknown` is deliberate — the response is validated downstream, so nothing changes
-in the pipeline when the real classifier lands.
-
-Build the prompt's ID list from `getAIAllowedVocabulary()`. It returns only
-`{ id, label, category }`.
-
-Vocabulary IDs are owned by the backend catalog. IDs from other naming schemes are
-translated in `src/lib/vocabulary/vocabularyAliases.ts` — add an alias there rather
-than forking the catalog.
-
----
-
-## Failure behavior
-
-| Failure | What happens |
-|---|---|
-| Classifier throws | fallback board |
-| Malformed / non-JSON response | fallback board |
-| Confidence below 0.78 | fallback board |
-| `requiresFallback: true` | fallback board |
-| Question type `unknown` | fallback board |
-| Invented vocabulary IDs | dropped; board keeps the valid ones |
-| All IDs invalid | fallback board |
-| More choices than the profile allows | sliced to `maxChoices` |
-| Image missing | label + icon; **not** a fallback |
-| `localStorage` corrupted or blocked | default settings; **not** a fallback |
-| No `OPENAI_API_KEY` | demo mode works unchanged |
-
-The fallback board always offers Yes, No, Repeat, Help, More time, and Full Board.
-
----
-
-## Layout
-
-```
-src/
-  app/api/classify-question/   board endpoint
-  app/api/health/              liveness + mode
-  lib/ai/                      classifier seam + mock
-  lib/board/                   builder, fallback, demo boards, Full Board
-  lib/images/                  image resolution hierarchy
-  lib/storage/                 settings, history, personal vocabulary
-  lib/validation/              Zod schemas — the trust boundary
-  lib/vocabulary/              approved catalog, allowlist, aliases
-  types/                       shared contracts
-scripts/smoke.ts               reliability checks
-```
-
-## Branches
-
-`main` is always deployable. `frontend`, `ai`, and `backend` are per-person.
-Before merging to `main`: `npm run build` and `npm run smoke` clean, and the
-breakfast, feelings, personalization, and fallback demos all verified.
+The command runs typecheck, lint, unit tests, production smoke checks, a Next.js production build, and a production dependency audit.

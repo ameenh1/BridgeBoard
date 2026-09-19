@@ -1,5 +1,6 @@
-import { getAppMode } from "@/lib/demo/demoMode";
-import { isUsingMockClassifier } from "@/lib/ai/classifyQuestion";
+import { hasClassifierCredentials } from "@/lib/ai/classifyQuestion";
+import { hasAssetProviders } from "@/lib/assets/openaiAssetProviders";
+import { isAssetStreamConfigured } from "@/lib/assets/assetToken";
 import { listAvailableImages } from "@/lib/images/imageManifest";
 import { getAIAllowedVocabulary } from "@/lib/vocabulary/vocabularyHelpers";
 
@@ -17,8 +18,14 @@ export async function GET(): Promise<Response> {
   return Response.json({
     ok: true,
     app: "bridgeboard",
-    mode: getAppMode(),
-    classifier: isUsingMockClassifier() ? "mock" : "live",
+    classifier: hasClassifierCredentials() ? "live" : "unconfigured",
+    realtime: process.env.OPENAI_API_KEY ? "configured" : "unconfigured",
+    assetProviders: hasAssetProviders() ? "configured" : "unconfigured",
+    assetStream: isAssetStreamConfigured() ? "configured" : "unconfigured",
+    sharedCache:
+      process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+        ? "configured"
+        : "optional_unconfigured",
     aiVocabularyCount: getAIAllowedVocabulary().length,
     imageAssetCount: listAvailableImages().length,
   });

@@ -1,13 +1,5 @@
 import { z } from "zod";
 
-/**
- * The shape we require from the classifier.
- *
- * Shared contract with Person 2 — do not change it unilaterally. Valid JSON is
- * not the same as trustworthy output, so this schema is only the first gate;
- * the allowlist in `buildRenderableBoard` is what actually keeps invented
- * vocabulary off a board.
- */
 export const AIClassificationSchema = z.object({
   questionType: z.enum([
     "forced_choice",
@@ -39,6 +31,9 @@ export const AIClassificationSchema = z.object({
   // Permissive on input, strict on output — `profile.maxChoices` is what
   // actually bounds the board.
   candidateVocabularyIds: z.array(z.string().min(1)).max(8),
+
+  /** Concrete phrases copied from the caregiver utterance, not invented labels. */
+  explicitVisualConcepts: z.array(z.string().trim().min(1).max(80)).max(8).default([]),
 
   supportActions: z
     .array(
