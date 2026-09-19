@@ -1,51 +1,40 @@
 # BridgeBoard
 
-A VTHacks 2026 project.
+BridgeBoard is a Next.js backend for turning finalized caregiver questions into immediately usable AAC boards. Text, speech, icons, and support actions are returned first; web or generated images upgrade individual choices through a separate stream without blocking or clearing the board.
 
-## Overview
+## Local setup
 
-_TODO: one or two sentences on what BridgeBoard does and the problem it solves._
+Requires Node.js 22.12 or newer.
 
-## Features
-
-- _TODO_
-- _TODO_
-- _TODO_
-
-## Tech Stack
-
-- _TODO_
-
-## Getting Started
-
-### Prerequisites
-
-- _TODO: runtime/tooling versions_
-
-### Installation
-
-```bash
-git clone https://github.com/ameenh1/BridgeBoard.git
-cd BridgeBoard
-# TODO: install dependencies
+```powershell
+npm ci
+Copy-Item .env.example .env.local
+npm run dev
 ```
 
-### Running Locally
+Set `OPENAI_API_KEY`, the OpenAI model variables, and a strong `ASSET_STREAM_SECRET` in `.env.local`. None of these variables may use a `NEXT_PUBLIC_` prefix.
 
-```bash
-# TODO: start command
+The optional shared cache uses `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and a private `bridgeboard-ai-assets` bucket. Apply the checked-in migration, then run:
+
+```powershell
+npm run supabase:setup-assets
 ```
 
-## Project Structure
+If Supabase is absent or unavailable, classification and live image resolution continue without the shared cache.
 
+## Routes
+
+- `POST /api/classify-question` returns the immediately usable board and an optional signed asset-stream descriptor.
+- `POST /api/resolve-assets` streams per-choice NDJSON image updates.
+- `POST /api/realtime/session` exchanges a WebRTC SDP offer for a server-created OpenAI Realtime session.
+- `GET /api/health` reports configured capabilities without exposing secrets.
+
+See [AI backend integration](docs/AI_BACKEND_INTEGRATION.md) for the frontend contract and stable-board behavior.
+
+## Verification
+
+```powershell
+npm run verify
 ```
-TODO
-```
 
-## Team
-
-- _TODO: name — role_
-
-## License
-
-_TODO_
+The command runs typecheck, lint, unit tests, production smoke checks, a Next.js production build, and a production dependency audit.
