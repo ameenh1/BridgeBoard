@@ -7,6 +7,55 @@ Status as of the `backend` branch. Check items off as they land.
 
 ---
 
+## TODAY — integration day, in order
+
+Ordered by how many people each item unblocks. **You** = needs your login or a
+teammate conversation. **Me** = I can do it on request.
+
+### Before anyone else pushes
+
+| | Who | Item | Why now |
+|---|---|---|---|
+| [ ] | Me | **Merge `backend` into `main`** | `main` has 4 source files; `backend` has 31. Clean fast-forward. If all three merge into the current `main`, two of you resolve conflicts against a base with no API, no types, no README |
+| [ ] | You | Tell both teammates to pull `main` first | stops a second round of the same conflict |
+| [ ] | You | **Deploy to Vercel** | the last Phase 0 item. Works today with no API key. Ten minutes now, a bad hour at 2am. Repo is under Ameen's account, so he may need to approve the Vercel GitHub app |
+
+### Two conversations to have
+
+| | Who | Item | The question |
+|---|---|---|---|
+| [ ] | You | Image assets → Person 2 | run `npm run images:check` and hand them the list. 19 files expected, 0 present. The two cup photos are what make the personalization demo land |
+| [ ] | You | Supabase → Ameen | is it load-bearing in the asset path, or a cache in front of static files? Team rule says the app must work without a database. A Supabase round-trip in the image path breaks that |
+
+### Then wire it up
+
+| | Who | Item | Note |
+|---|---|---|---|
+| [ ] | Me | Swap mock → Person 2's `classifyQuestion` | one function body in `src/lib/ai/classifyQuestion.ts`; flip `USING_MOCK` in the same commit. No gate downstream changes |
+| [ ] | Me | Aliases for any new ids they emit | `src/lib/vocabulary/vocabularyAliases.ts` |
+| [ ] | You/P1 | Point the UI at `POST /api/classify-question` | contract is in the README and below |
+| [ ] | Me | `/dev` diagnostics page *(optional)* | fires every demo prompt, dumps the board + health. Answers "backend bug or wiring bug?" in seconds. Deliberately unstyled, not child-facing |
+
+### Re-run the gate after each merge
+
+`npm run build` · `npm run smoke` · breakfast · feelings · Full Board · fallback ·
+no secrets · no raw AI output on screen
+
+### End of hackathon, not before
+
+| | Who | Item |
+|---|---|---|
+| [ ] | You | Backup screen-capture demo video |
+| [ ] | Me | Architecture notes for Devpost |
+| [ ] | You | Test deployed build in incognito + at tablet width |
+
+### Explicitly not doing
+
+Supabase for the MVP · image cache · `/api/images/resolve` · auth · runtime image
+generation. All Phase 2 or later, all gated on the demo working first.
+
+---
+
 ## Phase 0 — Shared setup
 
 | | Item | Notes |
