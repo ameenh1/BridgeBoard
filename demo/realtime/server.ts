@@ -39,9 +39,9 @@ async function serveStatic(pathname: string, response: ServerResponse): Promise<
 
   try {
     const contents = await readFile(filePath);
-    const contentType = pathname.endsWith(".html")
+    const contentType = filePath.endsWith(".html")
       ? "text/html; charset=utf-8"
-      : extname(filePath) === ".svg"
+      : extname(filePath).toLowerCase() === ".svg"
         ? "image/svg+xml"
         : "application/octet-stream";
     response.writeHead(200, { "Content-Type": contentType });

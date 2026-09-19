@@ -19,6 +19,7 @@
 - Initial Vitest 3.x installation reported two moderate `@vitest/mocker` path-traversal advisories. Upgrading to Vitest 5.0.1 removed the findings; `npm test`, `npm run typecheck`, and `npm audit` then passed.
 - npm reported a blocked optional `esbuild` install script during the first install. The runner still executed successfully, so no force-enabled install was needed.
 - The AI branch has no frontend framework/runtime, so the Realtime integration is framework-neutral and the end-to-end microphone check uses a small localhost Node demo. Keep that demo local-only; production apps should place the same session handler behind their own auth and rate limits.
+- The first demo server served `/` with `application/octet-stream` because MIME detection used the URL `/` instead of the resolved `index.html` path; browsers downloaded the page. Detect static content type from the resolved file path and verify the root response as `text/html`.
 
 ## Repository workflow
 
