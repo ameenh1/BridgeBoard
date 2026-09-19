@@ -38,7 +38,17 @@ function board(choices: RenderableChoice[], questionText?: string): RenderableBo
   };
 }
 
-/** A fetch stub that answers /api/health and queues classify responses. */
+/**
+ * What /api/auth/* returns for a test. Overridden per test via `authResult`
+ * when a signed-in session is what is being exercised.
+ */
+let authResponse: (url: string) => unknown = () => ({ status: "anonymous" });
+
+function setAuthResponse(next: (url: string) => unknown) {
+  authResponse = next;
+}
+
+/** A fetch stub that answers /api/health and /api/auth/*, and queues classify responses. */
 function stubFetch(queue: Array<() => Promise<Response>>) {
   const calls: Array<{ url: string; body?: unknown }> = [];
   const impl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -49,6 +59,18 @@ function stubFetch(queue: Array<() => Promise<Response>>) {
         JSON.stringify({ classifier: "live", sharedCache: "optional_unconfigured" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
+    }
+    /**
+     * Answered here rather than from the queue: the shell probes for an
+     * existing session on mount, and letting that probe consume a queued
+     * board response would desynchronise every test after it. Default is
+     * signed-out, which is the state these tests describe.
+     */
+    if (url.includes("/api/auth/")) {
+      return new Response(JSON.stringify(authResponse(url)), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const next = queue.shift();
     if (next) return next();
@@ -69,6 +91,7 @@ function jsonBoard(next: RenderableBoard) {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  setAuthResponse(() => ({ status: "anonymous" }));
   stubFetch([]);
 });
 
@@ -96,7 +119,7 @@ describe("login", () => {
     render(<BridgeBoardApp />);
 
     expect(await screen.findByLabelText("Email")).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: /continue locally/i }));
+    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
 
     // Straight to setup, and no request carried anything from the form.
     await screen.findByRole("heading", { name: /set up this board/i });
@@ -110,7 +133,7 @@ describe("login", () => {
 
     await user.type(await screen.findByLabelText("Email"), "someone@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter2");
-    await user.click(screen.getByRole("button", { name: /continue locally/i }));
+    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
     await screen.findByRole("heading", { name: /set up this board/i });
 
     const everything = JSON.stringify({
@@ -132,7 +155,87 @@ describe("login", () => {
     );
     render(<BridgeBoardApp />);
 
-    await user.click(await screen.findByRole("button", { name: /continue locally/i }));
+    await user.click(await screen.findByRole("button", { name: /continue without an account/i }));
+    expect(await screen.findByText("Cha")).toBeDefined();
+  });
+
+  it("signs in and enters the app", async () => {
+    const user = userEvent.setup();
+    setAuthResponse((url) =>
+      url.includes("/login")
+        ? { status: "signed_in", user: { id: "u1", email: "caregiver@example.com" } }
+        : { status: "anonymous" },
+    );
+    const calls = stubFetch([]);
+    render(<BridgeBoardApp />);
+
+    await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
+    await user.type(screen.getByLabelText("Password"), "a good password");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    await screen.findByRole("heading", { name: /set up this board/i });
+    const login = calls.find((call) => call.url.includes("/api/auth/login"));
+    expect(login?.body).toEqual({
+      email: "caregiver@example.com",
+      password: "a good password",
+    });
+  });
+
+  it("surfaces a failed sign-in without blocking the local path", async () => {
+    const user = userEvent.setup();
+    setAuthResponse((url) =>
+      url.includes("/login")
+        ? { status: "error", message: "That email and password don't match an account." }
+        : { status: "anonymous" },
+    );
+    stubFetch([]);
+    render(<BridgeBoardApp />);
+
+    await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    expect(await screen.findByText(/don't match an account/i)).toBeDefined();
+
+    // The whole point: a rejected sign-in still leaves the board one tap away.
+    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
+    await screen.findByRole("heading", { name: /set up this board/i });
+  });
+
+  it("reaches the board even when the auth service is unreachable", async () => {
+    const user = userEvent.setup();
+    const impl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/auth/")) throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify({ classifier: "live" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", impl);
+    render(<BridgeBoardApp />);
+
+    await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
+    await user.type(screen.getByLabelText("Password"), "a good password");
+    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
+
+    expect(await screen.findByText(/aren't reachable right now/i)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
+    await screen.findByRole("heading", { name: /set up this board/i });
+  });
+
+  it("skips the login screen when a session is already live", async () => {
+    window.localStorage.setItem(
+      "bridgeboard.profile.v1",
+      JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha" }),
+    );
+    setAuthResponse(() => ({
+      status: "signed_in",
+      user: { id: "u1", email: "caregiver@example.com" },
+    }));
+    stubFetch([]);
+    render(<BridgeBoardApp />);
+
     expect(await screen.findByText("Cha")).toBeDefined();
   });
 });

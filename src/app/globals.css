@@ -246,6 +246,70 @@ body {
   width: 100%;
 }
 
+.continue-button:disabled,
+.auth-toggle:disabled,
+.local-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Reserves its line whether or not there is a message, so the buttons below
+   do not jump when a sign-in fails. */
+.auth-message {
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 12px 0 0;
+  min-height: 1.5em;
+}
+
+.auth-message .is-error {
+  color: var(--coral);
+  font-weight: 700;
+}
+
+.auth-toggle {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  margin-top: 10px;
+  padding: 4px 0;
+  text-decoration: underline;
+}
+
+.auth-divider {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 14px;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  background: currentColor;
+  content: "";
+  flex: 1;
+  height: 1px;
+  opacity: 0.3;
+}
+
+.local-button {
+  background: transparent;
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  height: 58px;
+  width: 100%;
+}
+
 .auth-note {
   color: var(--muted);
   font-size: 15px;
@@ -623,6 +687,20 @@ body {
   font-size: 13px;
   height: 30px;
   width: 30px;
+}
+
+/* Quiet by design: an optional account should not compete with the board
+   controls for attention. */
+.signout-button {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  min-height: var(--tap-min);
+  padding: 0 4px;
+  text-decoration: underline;
 }
 
 .status-badge {
