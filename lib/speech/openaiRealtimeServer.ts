@@ -7,6 +7,7 @@ import type {
 
 export type OpenAIRealtimeTranscriptionSessionOptions = RealtimeTranscriptionConfig & {
   sdp: string;
+  realtimeModel?: string;
   apiKey?: string;
   safetyIdentifier?: string;
   endpoint?: string;
@@ -54,6 +55,10 @@ export async function createOpenAIRealtimeTranscriptionSession(
     "session",
     JSON.stringify({
       type: "realtime",
+      model:
+        options.realtimeModel ??
+        process.env.OPENAI_REALTIME_MODEL ??
+        "gpt-realtime-2.1-mini",
       audio: {
         input: {
           transcription: buildTranscriptionConfig(options),

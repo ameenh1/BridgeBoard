@@ -22,6 +22,7 @@ OPENAI_API_KEY=your_key_here
 OPENAI_TEXT_MODEL=gpt-5.6-luna
 OPENAI_SEARCH_MODEL=gpt-5.6-luna
 OPENAI_IMAGE_MODEL=gpt-image-2.5-flare
+OPENAI_REALTIME_MODEL=gpt-realtime-2.1-mini
 OPENAI_REALTIME_TRANSCRIPTION_MODEL=gpt-live-transcribe
 ```
 
@@ -65,7 +66,7 @@ await result.pending;
 
 ## Realtime caregiver microphone
 
-The browser-safe `createRealtimeTranscriptionController()` connects the microphone through WebRTC to OpenAI's Realtime API. The server-only `createOpenAIRealtimeTranscriptionSession()` receives the browser SDP offer and calls `/v1/realtime/calls`; the normal OpenAI API key never reaches the browser. The session uses `gpt-live-transcribe`, emits partial transcript deltas, and emits a finalized transcript after server voice-activity detection.
+The browser-safe `createRealtimeTranscriptionController()` connects the microphone through WebRTC to OpenAI's Realtime API. The server-only `createOpenAIRealtimeTranscriptionSession()` receives the browser SDP offer and calls `/v1/realtime/calls`; the normal OpenAI API key never reaches the browser. The session uses `gpt-realtime-2.1-mini` as the WebRTC session model and `gpt-live-transcribe` for input transcription, with automatic assistant responses disabled. Override either model through the environment variables above.
 
 The repository includes a runnable local demo that connects the full flow:
 

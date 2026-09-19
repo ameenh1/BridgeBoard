@@ -29,6 +29,7 @@ describe("OpenAI Realtime transcription session adapter", () => {
     expect(form.get("sdp")).toBe("offer-sdp");
     const session = JSON.parse(String(form.get("session"))) as {
       type: string;
+      model: string;
       audio: {
         input: {
           transcription: Record<string, unknown>;
@@ -41,6 +42,7 @@ describe("OpenAI Realtime transcription session adapter", () => {
       };
     };
     expect(session.type).toBe("realtime");
+    expect(session.model).toBe("gpt-realtime-2.1-mini");
     expect(session.audio.input.transcription).toEqual({
       model: "gpt-live-transcribe",
       keywords: ["blue cup", "red cup"],

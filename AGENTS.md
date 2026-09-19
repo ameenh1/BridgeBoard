@@ -20,7 +20,7 @@
 - npm reported a blocked optional `esbuild` install script during the first install. The runner still executed successfully, so no force-enabled install was needed.
 - The AI branch has no frontend framework/runtime, so the Realtime integration is framework-neutral and the end-to-end microphone check uses a small localhost Node demo. Keep that demo local-only; production apps should place the same session handler behind their own auth and rate limits.
 - The first demo server served `/` with `application/octet-stream` because MIME detection used the URL `/` instead of the resolved `index.html` path; browsers downloaded the page. Detect static content type from the resolved file path and verify the root response as `text/html`.
-- The Realtime demo initially sent `type: "transcription"` to `/v1/realtime/calls`, which caused the local session route to return HTTP 500. That endpoint requires `type: "realtime"`; keep `gpt-live-transcribe` under `audio.input.transcription` and set server VAD `create_response: false` for transcription-only caregiver audio.
+- The Realtime demo initially sent a transcription-only config to `/v1/realtime/calls`, which caused the local session route to return HTTP 500. The unified WebRTC endpoint requires `type: "realtime"` and a session `model`; keep `gpt-live-transcribe` under `audio.input.transcription` and set server VAD `create_response: false` for transcription-only caregiver audio.
 
 ## Repository workflow
 
