@@ -11,3 +11,7 @@
 ## Current integration note
 
 - On 2026-09-18, OAuth dynamic registration initially failed because the server rejected Codex's default scopes. The failed entry was replaced with a bearer-token fallback, then OAuth was retried with explicit Supabase scopes after the user signed in; Codex reported successful authentication. BridgeBoard project ref `rpldjjorjscwyaubbdtq` was verified in the Supabase dashboard.
+
+## Repository workflow
+
+- If Git reports `Author identity unknown`, set the identity only in this repository using the authenticated GitHub profile and its no-reply address; do not guess or change global Git identity.
