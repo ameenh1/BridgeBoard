@@ -10,7 +10,7 @@
 
 - Keep browser code limited to contracts, speech fallback, and cache events; OpenAI and Supabase admin clients stay server-only.
 - OpenAI web search returns sources, not trusted image bytes. Validate HTTPS, allowed hosts, MIME type, magic bytes, and size before caching a candidate.
-- On a cache miss, start web discovery and image generation together, emit the placeholder immediately, and let the first validated result win.
+- On a cache miss, use the configured asset search mode: generation-first avoids a web-search charge when generation succeeds, while parallel/web-first preserve the first-validated-result race. Keep fallback events internal to the demo UI.
 - If dependency installation reports blocked optional scripts or audit findings, record the exact result and verify typecheck/tests before changing versions or using force fixes.
 - Use the Realtime unified WebRTC endpoint from a server route. The browser may send SDP, but it must never receive the standard OpenAI API key.
 
@@ -23,6 +23,9 @@
 - The Realtime demo initially sent a transcription-only config to `/v1/realtime/calls`, which caused the local session route to return HTTP 500. The unified WebRTC endpoint requires `type: "realtime"` and a session `model`; keep `gpt-live-transcribe` under `audio.input.transcription` and set server VAD `create_response: false` for transcription-only caregiver audio.
 - Placeholder-only manifest entries made the fast path look empty and shared-cache lookups could delay fallback paint; common demo choices now have local SVG symbols, the demo keeps a process hot cache, and fallback events are emitted before the shared lookup.
 - The demo UI previously rendered those local symbols as final-looking cards, so generated assets were hard to confirm. Keep fallback events internal to the resolver, show a loading state in the demo, and render only ready non-placeholder assets with their source label and optional source link.
+- A live web-provider probe initially omitted the repository env loader and then found the local image-host allowlist was too narrow for the search result. Load `serverEnv.ts` in standalone probes and keep the approved image-host set aligned in `.env.example` and local development configuration.
+- Unsplash negotiated AVIF because the downloader advertised it before the supported formats, so valid web results were rejected by byte validation. Prefer PNG/JPEG/WebP in the request `Accept` header and keep the validator/cache format set consistent.
+- Unapproved visuals must come only from explicit concrete caregiver-spoken concepts returned in a separate structured field; hash those concepts for cache keys and cap the total requests per turn so transcript text is not stored and image calls do not grow without bound.
 
 ## Repository workflow
 

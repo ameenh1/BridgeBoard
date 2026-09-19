@@ -16,6 +16,7 @@ export type {
 } from "./assets/resolveVisualAssets.js";
 export type {
   AssetProviders,
+  AssetSearchMode,
   SharedAssetCache
 } from "./assets/types.js";
 export type { OpenAIRealtimeTranscriptionSessionOptions } from "./speech/openaiRealtimeServer.js";

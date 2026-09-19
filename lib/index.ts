@@ -20,6 +20,7 @@ export { createRealtimeTranscriptionController } from "./speech/realtimeTranscri
 export type {
   AssetResolution,
   AssetResolutionEvent,
+  AssetSearchMode,
   AssetSource,
   AssetStatus,
   VisualAssetRequest

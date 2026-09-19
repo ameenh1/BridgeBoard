@@ -18,6 +18,11 @@
       button:disabled { opacity: 0.5; cursor: not-allowed; }
       .panel { background: white; border: 1px solid #d9e0ee; border-radius: 1rem; padding: 1rem; margin-top: 1rem; box-shadow: 0 8px 24px #1e2a4512; }
       .controls { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+      .manual-input { display: grid; gap: 0.5rem; margin-top: 1rem; }
+      .manual-input label { font-weight: 700; }
+      .manual-controls { display: flex; gap: 0.5rem; }
+      .manual-controls input { flex: 1; min-width: 12rem; border: 1px solid #c8d1e2; border-radius: 0.7rem; padding: 0.75rem; font: inherit; }
+      .manual-input small { color: #657797; }
       .status { margin-top: 0.75rem; color: #4d5c76; }
       .partial { min-height: 1.5rem; color: #657797; font-style: italic; }
       .transcript { min-height: 2rem; font-size: 1.2rem; }
@@ -58,6 +63,14 @@
         <button class="secondary demo" data-transcript="Do you want your blue cup or red cup?">Test blue/red cup</button>
         <button class="secondary demo" data-transcript="Do you want waffles or pancakes?">Test waffles/pancakes</button>
       </div>
+      <form id="manual-form" class="manual-input">
+        <label for="manual-transcript">Try any caregiver transcript</label>
+        <div class="manual-controls">
+          <input id="manual-transcript" name="transcript" placeholder="Would you like a guitar or piano?" autocomplete="off" />
+          <button class="secondary" type="submit">Resolve transcript</button>
+        </div>
+        <small>Explicitly spoken concepts outside the approved vocabulary can also become visual assets.</small>
+      </form>
       <div id="status" class="status">Idle. Use a demo transcript or start the microphone.</div>
     </section>
 
@@ -77,6 +90,8 @@
     <script>
       const startButton = document.querySelector("#start");
       const stopButton = document.querySelector("#stop");
+      const manualForm = document.querySelector("#manual-form");
+      const manualTranscript = document.querySelector("#manual-transcript");
       const status = document.querySelector("#status");
       const partial = document.querySelector("#partial");
       const finalText = document.querySelector("#final");
@@ -190,7 +205,7 @@
         card.className = "asset pending";
         card.dataset.pending = "true";
         card.setAttribute("aria-live", "polite");
-        card.innerHTML = `<div class="asset-loading-visual" role="img" aria-label="Waiting for a verified visual"></div><strong>Generating verified visuals</strong><br><small>Searching approved sources and generating in parallel...</small>`;
+        card.innerHTML = `<div class="asset-loading-visual" role="img" aria-label="Waiting for a verified visual"></div><strong>Resolving verified visuals</strong><br><small>Checking cache, image generation, and web fallback...</small>`;
         board.appendChild(card);
       }
 
@@ -236,8 +251,8 @@
         const detail = card.querySelector("small");
         const meta = card.querySelector(".asset-meta");
         image.src = resolution.assetUrl;
-        image.alt = `${resolution.vocabularyId} ${resolution.status}`;
-        label.textContent = resolution.vocabularyId;
+        image.alt = `${resolution.label || resolution.vocabularyId} ${resolution.status}`;
+        label.textContent = resolution.label || resolution.vocabularyId;
         detail.textContent = `${sourceLabel(resolution.source)} · ready`;
         meta.replaceChildren();
         if (resolution.attribution) {
@@ -307,7 +322,7 @@
                 }
               }
               if (event.type === "fallback") {
-                pipeline.textContent = "No verified image yet. Searching approved sources and generating in parallel...";
+                pipeline.textContent = "No verified image yet. Trying the configured image providers...";
               }
               if (event.type === "ready") {
                 renderResolution(event.resolution);
@@ -339,6 +354,11 @@
 
       startButton.addEventListener("click", startMicrophone);
       stopButton.addEventListener("click", stopMicrophone);
+      manualForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const transcript = manualTranscript.value.trim();
+        if (transcript) processFinalTranscript(transcript);
+      });
       document.querySelectorAll(".demo").forEach((button) => {
         button.addEventListener("click", () => processFinalTranscript(button.dataset.transcript));
       });

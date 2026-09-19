@@ -90,7 +90,10 @@ async function fetchImageCandidate(
   const response = await fetchImpl(urlString, {
     method: "GET",
     redirect: "follow",
-    headers: { accept: "image/avif,image/webp,image/png,image/jpeg,text/html;q=0.8" }
+    // Keep AVIF out of negotiation because the shared cache and validator use
+    // the portable PNG/JPEG/WebP set. Some CDNs otherwise return AVIF even
+    // when the URL contains a JPEG format hint.
+    headers: { accept: "image/jpeg,image/png,image/webp,text/html;q=0.8" }
   });
 
   if (!response.ok) {

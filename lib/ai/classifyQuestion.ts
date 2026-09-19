@@ -35,7 +35,7 @@ export async function classifyQuestion(
   options: ClassifyQuestionOptions = {}
 ): Promise<AIClassification> {
   const vocabulary = options.approvedVocabulary ?? APPROVED_VOCABULARY;
-  const maxChoices = options.maxChoices ?? 4;
+  const maxChoices = options.maxChoices ?? 6;
   const deterministic = classifyDeterministically(transcript, maxChoices);
 
   if (deterministic && !options.forceLiveAI) {

@@ -2,9 +2,12 @@ import type { ApprovedVocabularyItem } from "../../data/approvedVocabulary.js";
 
 export type AssetSource = "local" | "supabase" | "web" | "generated" | "placeholder";
 export type AssetStatus = "pending" | "ready" | "fallback" | "error";
+export type AssetSearchMode = "parallel" | "generation_first" | "web_first" | "off";
 
 export type VisualAssetRequest = {
   vocabularyId: string;
+  displayLabel: string;
+  kind: "approved" | "explicit";
   normalizedConcept: string;
   cacheKey: string;
   webSearchQuery: string;
@@ -41,6 +44,7 @@ export type AssetRecord = {
 export type AssetResolution = {
   assetKey: string;
   vocabularyId: string;
+  label?: string;
   status: AssetStatus;
   source: AssetSource;
   assetUrl: string;
@@ -75,4 +79,5 @@ export type BuildVisualRequestOptions = {
   locale?: string;
   styleVersion?: string;
   vocabulary?: readonly ApprovedVocabularyItem[];
+  maxVisualAssets?: number;
 };

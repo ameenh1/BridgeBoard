@@ -38,6 +38,7 @@ export const AIClassificationSchema = z
     questionText: z.string().max(300),
     topic: TopicSchema,
     candidateVocabularyIds: z.array(z.string().min(1)).max(8),
+    explicitVisualConcepts: z.array(z.string().trim().min(1).max(80)).max(8).default([]),
     supportActions: z.array(SupportActionSchema).max(6),
     confidence: z.number().min(0).max(1),
     requiresFallback: z.boolean()

@@ -27,6 +27,7 @@ export function createUnknownClassification(transcript: string, confidence = 0):
     questionText: transcript.trim().slice(0, 300),
     topic: "other",
     candidateVocabularyIds: [],
+    explicitVisualConcepts: [],
     supportActions: [...DEFAULT_SUPPORT_ACTIONS],
     confidence,
     requiresFallback: true
@@ -58,6 +59,7 @@ export function classifyDeterministically(
       questionText: transcript.trim().slice(0, 300),
       topic: "food",
       candidateVocabularyIds: limitCandidates(["food_waffles", "food_pancakes"], maxChoices),
+      explicitVisualConcepts: [],
       supportActions: [...DEFAULT_SUPPORT_ACTIONS],
       confidence: 0.99,
       requiresFallback: false
@@ -82,6 +84,7 @@ export function classifyDeterministically(
         ],
         maxChoices
       ),
+      explicitVisualConcepts: [],
       supportActions: [...DEFAULT_SUPPORT_ACTIONS],
       confidence: 0.99,
       requiresFallback: false
@@ -97,6 +100,7 @@ export function classifyDeterministically(
         ["personal_blue_cup", "personal_red_cup"],
         maxChoices
       ),
+      explicitVisualConcepts: [],
       supportActions: [...DEFAULT_SUPPORT_ACTIONS],
       confidence: 0.99,
       requiresFallback: false
@@ -112,6 +116,7 @@ export function classifyDeterministically(
         ["action_yes", "action_no", "action_later"],
         maxChoices
       ),
+      explicitVisualConcepts: [],
       supportActions: [...DEFAULT_SUPPORT_ACTIONS],
       confidence: 0.94,
       requiresFallback: false
@@ -127,6 +132,7 @@ export function classifyDeterministically(
         ["need_bathroom", "action_yes", "action_no", "need_help"],
         maxChoices
       ),
+      explicitVisualConcepts: [],
       supportActions: [...DEFAULT_SUPPORT_ACTIONS],
       confidence: 0.94,
       requiresFallback: false

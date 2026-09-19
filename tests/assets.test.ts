@@ -3,6 +3,7 @@ import { MemoryAssetCache } from "../lib/assets/cache.js";
 import { validateImageBytes } from "../lib/assets/imageValidation.js";
 import { createOpenAIAssetProviders } from "../lib/assets/openaiAssetProviders.js";
 import { resolveVisualAssets } from "../lib/assets/resolveVisualAssets.js";
+import { buildVisualAssetRequests } from "../lib/assets/visualRequests.js";
 import type { AssetProviders, ImageCandidate, SharedAssetCache } from "../lib/assets/types.js";
 
 const PNG_BYTES = Uint8Array.from([
@@ -42,6 +43,58 @@ function createSharedCache(): SharedAssetCache {
 }
 
 describe("visual asset resolution", () => {
+  it("builds hashed requests for explicit concepts outside the approved vocabulary", () => {
+    const requests = buildVisualAssetRequests({
+      questionType: "forced_choice",
+      questionText: "Would you like a guitar or piano?",
+      topic: "other",
+      candidateVocabularyIds: [],
+      explicitVisualConcepts: ["guitar", "piano"],
+      supportActions: ["help", "repeat", "something_else", "need_more_time", "full_board"],
+      confidence: 0.9,
+      requiresFallback: false
+    });
+
+    expect(requests.map((request) => request.displayLabel)).toEqual(["Guitar", "Piano"]);
+    expect(requests.every((request) => request.kind === "explicit")).toBe(true);
+    expect(requests.every((request) => !request.cacheKey.includes("guitar") && !request.cacheKey.includes("piano"))).toBe(true);
+  });
+
+  it("resolves explicit unapproved concepts through the real provider contract", async () => {
+    const fakeClient = {
+      responses: {
+        parse: async () => ({
+          output_parsed: {
+            questionType: "forced_choice",
+            questionText: "Would you like a guitar or piano?",
+            topic: "other",
+            candidateVocabularyIds: [],
+            explicitVisualConcepts: ["guitar", "piano"],
+            supportActions: ["help", "repeat", "something_else", "need_more_time", "full_board"],
+            confidence: 0.86,
+            requiresFallback: false
+          }
+        })
+      }
+    };
+    const readyIds: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Would you like a guitar or piano?",
+      classifyOptions: { allowLiveAI: true, openAIClient: fakeClient as never },
+      providers: {
+        discoverWebImage: async () => null,
+        generateImage: async () => candidate("generated")
+      },
+      onEvent: (event) => {
+        if (event.type === "ready") readyIds.push(event.resolution.label ?? event.resolution.vocabularyId);
+      }
+    });
+
+    await result.pending;
+    expect(result.requests.map((request) => request.displayLabel)).toEqual(["Guitar", "Piano"]);
+    expect(readyIds).toEqual(["Guitar", "Piano"]);
+  });
+
   it("emits fallback immediately and then the first valid asset", async () => {
     const events: string[] = [];
     const fallbackUrls: string[] = [];
@@ -64,6 +117,7 @@ describe("visual asset resolution", () => {
       transcript: "Do you want waffles or pancakes?",
       providers,
       sharedCache: createSharedCache(),
+      assetSearchMode: "parallel",
       onEvent: (event) => {
         events.push(`${event.type}:${event.resolution.source}`);
         if (event.type === "fallback") fallbackUrls.push(event.resolution.assetUrl);
@@ -125,6 +179,31 @@ describe("visual asset resolution", () => {
     expect(events).toEqual(["ready:generated", "ready:generated"]);
     expect(calls).toBe(0);
   });
+
+  it("uses generation first to avoid web search when generation succeeds", async () => {
+    let webCalls = 0;
+    let generationCalls = 0;
+    const events: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Do you want waffles or pancakes?",
+      providers: {
+        discoverWebImage: async () => {
+          webCalls += 1;
+          return candidate("web");
+        },
+        generateImage: async () => {
+          generationCalls += 1;
+          return candidate("generated");
+        }
+      },
+      onEvent: (event) => events.push(`${event.type}:${event.resolution.source}`)
+    });
+
+    await result.pending;
+    expect(generationCalls).toBe(2);
+    expect(webCalls).toBe(0);
+    expect(events).toContain("ready:generated");
+  });
 });
 
 describe("image validation", () => {
@@ -147,18 +226,23 @@ describe("OpenAI asset providers", () => {
         })
       }
     };
+    let acceptHeader = "";
     const provider = createOpenAIAssetProviders({
       openAIClient: fakeClient as never,
       allowedImageDomains: ["images.example"],
-      fetchImpl: (async () =>
-        new Response(PNG_BYTES, {
+      fetchImpl: (async (_url, init) => {
+        acceptHeader = new Headers(init?.headers).get("accept") ?? "";
+        return new Response(PNG_BYTES, {
           status: 200,
           headers: { "content-type": "image/png" }
-        })) as typeof fetch
+        });
+      }) as typeof fetch
     });
 
     const result = await provider.discoverWebImage({
       vocabularyId: "food_waffles",
+      displayLabel: "Waffles",
+      kind: "approved",
       normalizedConcept: "waffles",
       cacheKey: "aac:food_waffles:en-US:aac-flat-v1",
       webSearchQuery: "waffles",
@@ -169,6 +253,7 @@ describe("OpenAI asset providers", () => {
 
     expect(result?.source).toBe("web");
     expect(result?.sourceUrl).toBe("https://images.example/waffles.png");
+    expect(acceptHeader).not.toContain("image/avif");
   });
 
   it("decodes and validates a generated base64 image", async () => {
@@ -181,6 +266,8 @@ describe("OpenAI asset providers", () => {
 
     const result = await provider.generateImage({
       vocabularyId: "food_waffles",
+      displayLabel: "Waffles",
+      kind: "approved",
       normalizedConcept: "waffles",
       cacheKey: "aac:food_waffles:en-US:aac-flat-v1",
       webSearchQuery: "waffles",

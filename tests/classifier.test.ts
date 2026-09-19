@@ -92,4 +92,29 @@ describe("classification safety boundary", () => {
     expect(result.candidateVocabularyIds).toEqual(["drink_water"]);
     expect(result.requiresFallback).toBe(false);
   });
+
+  it("keeps explicit unapproved visual concepts separate from approved IDs", async () => {
+    const parse = async () => ({
+      output_parsed: {
+        questionType: "forced_choice",
+        questionText: "Would you like a guitar or piano?",
+        topic: "other",
+        candidateVocabularyIds: [],
+        explicitVisualConcepts: ["guitar", "Piano"],
+        supportActions: ["help", "repeat", "something_else", "need_more_time", "full_board"],
+        confidence: 0.86,
+        requiresFallback: false
+      }
+    });
+    const fakeClient = { responses: { parse } } as unknown as OpenAI;
+
+    const result = await classifyQuestion("Would you like a guitar or piano?", {
+      allowLiveAI: true,
+      openAIClient: fakeClient
+    });
+
+    expect(result.candidateVocabularyIds).toEqual([]);
+    expect(result.explicitVisualConcepts).toEqual(["guitar", "piano"]);
+    expect(result.requiresFallback).toBe(false);
+  });
 });

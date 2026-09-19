@@ -15,6 +15,7 @@ import type {
   AssetRecord,
   AssetResolution,
   AssetResolutionEvent,
+  AssetSearchMode,
   ImageCandidate,
   SharedAssetCache,
   VisualAssetRequest
@@ -31,6 +32,8 @@ export type ResolveVisualAssetsOptions = {
   onEvent?: (event: AssetResolutionEvent) => void;
   locale?: string;
   styleVersion?: string;
+  maxVisualAssets?: number;
+  assetSearchMode?: AssetSearchMode;
 };
 
 export type ResolveVisualAssetsResult = {
@@ -44,6 +47,7 @@ function fallbackResolution(request: VisualAssetRequest): AssetResolution {
   return {
     assetKey: request.cacheKey,
     vocabularyId: request.vocabularyId,
+    label: request.displayLabel,
     status: "fallback",
     source: IMAGE_MANIFEST[request.vocabularyId] ? "local" : "placeholder",
     assetUrl
@@ -106,18 +110,11 @@ async function resolveMiss(
     return;
   }
 
-  const candidatePromises = [
-    Promise.resolve().then(() => providers.discoverWebImage(request)),
-    Promise.resolve().then(() => providers.generateImage(request))
-  ];
-
-  // Start both providers concurrently. The allSettled call ensures every
-  // provider is observed even after the first valid candidate wins.
-  const allProvidersSettled = Promise.allSettled(candidatePromises);
-  const candidate = await firstValidCandidate(candidatePromises);
+  const searchMode = resolveAssetSearchMode(options.assetSearchMode);
+  const providerResult = await findProviderCandidate(request, providers, searchMode);
+  const candidate = providerResult.candidate;
 
   if (!candidate) {
-    await allProvidersSettled;
     emit(options, {
       type: "error",
       resolution: { ...fallback, status: "error", error: "Web discovery and image generation returned no valid asset." }
@@ -159,6 +156,7 @@ async function resolveMiss(
       resolution: {
         assetKey: request.cacheKey,
         vocabularyId: request.vocabularyId,
+        label: request.displayLabel,
         status: "ready",
         source: record.source,
         assetUrl: record.assetUrl,
@@ -166,11 +164,11 @@ async function resolveMiss(
         attribution: record.attribution
       }
     });
-    // Do not delay the ready event for the slower provider, but keep awaiting
-    // it so the returned pending promise represents complete background work.
-    await allProvidersSettled;
+    // In parallel mode the slower provider is observed in the background, but
+    // the ready event above is emitted as soon as the first valid candidate is cached.
+    await providerResult.allProvidersSettled;
   } catch (error) {
-    await allProvidersSettled;
+    await providerResult.allProvidersSettled;
     emit(options, {
       type: "error",
       resolution: {
@@ -180,6 +178,65 @@ async function resolveMiss(
       }
     });
   }
+}
+
+function resolveAssetSearchMode(configured?: AssetSearchMode): AssetSearchMode {
+  const value = configured ?? process.env.AI_ASSET_SEARCH_MODE ?? "generation_first";
+  return value === "parallel" || value === "generation_first" || value === "web_first" || value === "off"
+    ? value
+    : "generation_first";
+}
+
+async function safeProviderCall(
+  name: string,
+  callback: () => Promise<ImageCandidate | null>
+): Promise<ImageCandidate | null> {
+  try {
+    return await callback();
+  } catch (error) {
+    console.error(`${name} asset provider failed.`, error);
+    return null;
+  }
+}
+
+async function findProviderCandidate(
+  request: VisualAssetRequest,
+  providers: AssetProviders,
+  mode: AssetSearchMode
+): Promise<{ candidate: ImageCandidate | null; allProvidersSettled: Promise<unknown> }> {
+  if (mode === "off") {
+    return { candidate: null, allProvidersSettled: Promise.resolve() };
+  }
+
+  if (mode === "generation_first") {
+    const generated = await safeProviderCall("Image generation", () => providers.generateImage(request));
+    if (generated) {
+      return { candidate: generated, allProvidersSettled: Promise.resolve() };
+    }
+
+    const web = await safeProviderCall("Web discovery", () => providers.discoverWebImage(request));
+    return { candidate: web, allProvidersSettled: Promise.resolve() };
+  }
+
+  if (mode === "web_first") {
+    const web = await safeProviderCall("Web discovery", () => providers.discoverWebImage(request));
+    if (web) {
+      return { candidate: web, allProvidersSettled: Promise.resolve() };
+    }
+
+    const generated = await safeProviderCall("Image generation", () => providers.generateImage(request));
+    return { candidate: generated, allProvidersSettled: Promise.resolve() };
+  }
+
+  const candidatePromises = [
+    safeProviderCall("Web discovery", () => providers.discoverWebImage(request)),
+    safeProviderCall("Image generation", () => providers.generateImage(request))
+  ];
+  const allProvidersSettled = Promise.allSettled(candidatePromises);
+  return {
+    candidate: await firstValidCandidate(candidatePromises),
+    allProvidersSettled
+  };
 }
 
 export async function resolveVisualAssets(
@@ -194,7 +251,8 @@ export async function resolveVisualAssets(
   const requests = buildVisualAssetRequests(classification, {
     vocabulary,
     locale: options.locale,
-    styleVersion: options.styleVersion
+    styleVersion: options.styleVersion,
+    maxVisualAssets: options.maxVisualAssets ?? Number(process.env.AI_MAX_VISUAL_ASSETS ?? 8)
   });
   const localCache = options.localCache ?? createNoopAssetCache();
   const pendingWork: Promise<void>[] = [];
@@ -211,6 +269,7 @@ export async function resolveVisualAssets(
         resolution: {
           assetKey: request.cacheKey,
           vocabularyId: request.vocabularyId,
+          label: request.displayLabel,
           status: "ready",
           source: localRecord.source,
           assetUrl: localRecord.assetUrl,
@@ -238,6 +297,7 @@ export async function resolveVisualAssets(
         resolution: {
           assetKey: request.cacheKey,
           vocabularyId: request.vocabularyId,
+          label: request.displayLabel,
           status: "ready",
           source: "supabase",
           assetUrl: sharedRecord.assetUrl,
