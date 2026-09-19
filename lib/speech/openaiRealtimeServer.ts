@@ -17,7 +17,9 @@ const DEFAULT_TURN_DETECTION: Exclude<RealtimeTranscriptionTurnDetection, null> 
   type: "server_vad",
   threshold: 0.5,
   prefix_padding_ms: 300,
-  silence_duration_ms: 500
+  silence_duration_ms: 500,
+  create_response: false,
+  interrupt_response: false
 };
 
 function buildTranscriptionConfig(options: OpenAIRealtimeTranscriptionSessionOptions) {
@@ -51,7 +53,7 @@ export async function createOpenAIRealtimeTranscriptionSession(
   form.set(
     "session",
     JSON.stringify({
-      type: "transcription",
+      type: "realtime",
       audio: {
         input: {
           transcription: buildTranscriptionConfig(options),

@@ -117,8 +117,9 @@
           startButton.disabled = true;
           stopButton.disabled = false;
         } catch (error) {
-          setStatus(`Microphone connection failed: ${error.message}`);
+          const message = error instanceof Error ? error.message : String(error);
           stopMicrophone();
+          setStatus(`Microphone connection failed: ${message}`);
         }
       }
 

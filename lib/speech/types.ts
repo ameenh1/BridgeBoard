@@ -10,6 +10,8 @@ export type RealtimeTranscriptionTurnDetection = {
   threshold?: number;
   prefix_padding_ms?: number;
   silence_duration_ms?: number;
+  create_response?: boolean;
+  interrupt_response?: boolean;
 } | null;
 
 export type RealtimeTranscriptionConfig = {

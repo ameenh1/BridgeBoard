@@ -29,9 +29,18 @@ describe("OpenAI Realtime transcription session adapter", () => {
     expect(form.get("sdp")).toBe("offer-sdp");
     const session = JSON.parse(String(form.get("session"))) as {
       type: string;
-      audio: { input: { transcription: Record<string, unknown>; turn_detection: { type: string } } };
+      audio: {
+        input: {
+          transcription: Record<string, unknown>;
+          turn_detection: {
+            type: string;
+            create_response?: boolean;
+            interrupt_response?: boolean;
+          };
+        };
+      };
     };
-    expect(session.type).toBe("transcription");
+    expect(session.type).toBe("realtime");
     expect(session.audio.input.transcription).toEqual({
       model: "gpt-live-transcribe",
       keywords: ["blue cup", "red cup"],
@@ -39,6 +48,8 @@ describe("OpenAI Realtime transcription session adapter", () => {
       delay: "low"
     });
     expect(session.audio.input.turn_detection.type).toBe("server_vad");
+    expect(session.audio.input.turn_detection.create_response).toBe(false);
+    expect(session.audio.input.turn_detection.interrupt_response).toBe(false);
   });
 
   it("supports explicit turn commits and reports OpenAI failures", async () => {
