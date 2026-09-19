@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BridgeBoard visual placeholder">
+  <rect width="512" height="512" rx="48" fill="#e8eef7"/>
+  <path d="M112 350h288M160 300l48-64 54 48 42-56 48 72" fill="none" stroke="#526581" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="176" cy="174" r="28" fill="#526581"/>
+  <text x="256" y="424" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#26364f">BridgeBoard</text>
+</svg>
