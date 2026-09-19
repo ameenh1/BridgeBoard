@@ -105,6 +105,20 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     isCore: true,
   },
   {
+    // The concept doc lists "I don't know" as a persistent option on every
+    // board, but `BoardAction` has no member for it. Carrying it as core
+    // vocabulary lets the UI show it now without changing a shared contract.
+    // Not offered to the classifier: it is an escape hatch the communicator
+    // always has, not a choice the AI should spend a slot proposing.
+    id: "core_dont_know",
+    label: "I don't know",
+    spokenPhrase: "I don't know.",
+    category: "core",
+    iconKey: "circle-help",
+    allowedForAI: false,
+    isCore: true,
+  },
+  {
     id: "core_like",
     label: "like",
     spokenPhrase: "like",

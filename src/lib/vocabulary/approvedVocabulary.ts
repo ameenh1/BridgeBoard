@@ -87,6 +87,15 @@ const CONTEXT_VOCABULARY: VocabularyItem[] = [
     allowedForAI: true,
     isCore: true,
   },
+  {
+    id: "emotion_sick",
+    label: "Sick",
+    spokenPhrase: "I feel sick.",
+    category: "feelings",
+    iconKey: "thermometer",
+    allowedForAI: true,
+    isCore: true,
+  },
 
   // Needs
   {
