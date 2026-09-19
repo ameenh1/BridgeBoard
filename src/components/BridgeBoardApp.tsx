@@ -25,6 +25,13 @@ import {
   updateSettings,
 } from "@/lib/storage/settings";
 import { endLocalSession, hasLocalSession, startLocalSession } from "@/lib/storage/localSession";
+import {
+  clearPersonalPhotos,
+  loadPersonalPhotos,
+  personalPhotoMap,
+  type PersonalPhoto,
+} from "@/lib/storage/personalPhotos";
+import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
 import { fetchSession, signOut } from "@/lib/auth/authClient";
 import type { AuthUser } from "@/types/auth";
 import type { BoardAction, RenderableChoice } from "@/types/board";
@@ -34,6 +41,7 @@ import type { VocabularyItem } from "@/types/vocabulary";
 import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
+import { PhotosScreen } from "./PhotosScreen";
 import { HistoryScreen } from "./HistoryScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
@@ -42,7 +50,7 @@ import { ACTIONS } from "./icons";
 import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
-type View = "board" | "ai" | "history" | "caregiver" | "settings";
+type View = "board" | "ai" | "history" | "caregiver" | "settings" | "photos";
 
 type Health = {
   classifier: "live" | "unconfigured";
@@ -94,6 +102,7 @@ function BridgeBoardShell() {
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
   const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
+  const [photos, setPhotos] = useState<PersonalPhoto[]>(() => loadPersonalPhotos());
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
@@ -266,18 +275,20 @@ function BridgeBoardShell() {
   }, []);
 
   const resetProfile = useCallback(() => {
-    if (!window.confirm("Reset this profile? Settings and history on this device will be erased.")) {
+    if (!window.confirm("Reset this profile? Settings, history and personal photos on this device will be erased.")) {
       return;
     }
     void stopListening();
     clearSettings();
     clearHistory();
+    clearPersonalPhotos();
     endLocalSession();
     // Resetting the device should not leave an account still signed in on it.
     void signOut();
     setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
     setHistory([]);
+    setPhotos([]);
     setStage("login");
     setView("board");
   }, [stopListening]);
@@ -338,6 +349,16 @@ function BridgeBoardShell() {
     return <SetupScreen initial={profile} onFinish={finishSetup} />;
   }
 
+  // Personal photos are applied here rather than on the server: they are
+  // never uploaded, so a board arrives generic and is personalized on the
+  // device. applyPersonalPhotos returns the same reference when nothing
+  // matches, so this costs nothing when no photos are set.
+  const photoMap = personalPhotoMap(photos);
+  const personalizedSession =
+    session.board && photoMap.size > 0
+      ? { ...session, board: applyPersonalPhotos(session.board, photoMap) }
+      : session;
+
   const name = profile.displayName.trim();
 
   return (
@@ -397,12 +418,17 @@ function BridgeBoardShell() {
       */}
       <div className="app-content">
         {view === "board" ? (
-          <DefaultBoard profile={profile} onSpeak={say} onRecord={chooseVocabulary} />
+          <DefaultBoard
+            profile={profile}
+            photos={photoMap}
+            onSpeak={say}
+            onRecord={chooseVocabulary}
+          />
         ) : null}
 
         {view === "ai" ? (
           <AiBoard
-            session={session}
+            session={personalizedSession}
             profile={profile}
             realtimeState={realtimeState}
             microphoneError={microphoneError}
@@ -422,7 +448,15 @@ function BridgeBoardShell() {
         ) : null}
 
         {view === "caregiver" ? (
-          <CaregiverScreen onOpenSettings={() => setView("settings")} />
+          <CaregiverScreen
+            onOpenSettings={() => setView("settings")}
+            onOpenPhotos={() => setView("photos")}
+            photoCount={photos.length}
+          />
+        ) : null}
+
+        {view === "photos" ? (
+          <PhotosScreen photos={photos} onChange={setPhotos} />
         ) : null}
 
         {view === "settings" ? (

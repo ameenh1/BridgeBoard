@@ -1,6 +1,6 @@
 "use client";
 
-import { MicOff, ShieldCheck, Sliders } from "lucide-react";
+import { Camera, MicOff, ShieldCheck, Sliders } from "lucide-react";
 
 /**
  * Caregiver overview.
@@ -10,7 +10,15 @@ import { MicOff, ShieldCheck, Sliders } from "lucide-react";
  * screen, the privacy card now states the actual behaviour and the vocabulary
  * card says plainly what is and is not possible today.
  */
-export function CaregiverScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function CaregiverScreen({
+  onOpenSettings,
+  onOpenPhotos,
+  photoCount,
+}: {
+  onOpenSettings: () => void;
+  onOpenPhotos: () => void;
+  photoCount: number;
+}) {
   return (
     <section className="simple-view">
       <div className="view-heading">
@@ -45,6 +53,21 @@ export function CaregiverScreen({ onOpenSettings }: { onOpenSettings: () => void
             If it fails or is unsure, the board falls back to manual rather than
             guessing.
           </p>
+        </article>
+
+        <article className="settings-card">
+          <span className="card-icon" aria-hidden="true">
+            <Camera size={28} />
+          </span>
+          <h2>Personal photos</h2>
+          <p>
+            Use a photo of the real thing instead of a drawing — their cup,
+            their bag, their dog. Photos stay on this device and are never
+            uploaded or sent to the AI.
+          </p>
+          <button className="secondary-button" type="button" onClick={onOpenPhotos}>
+            {photoCount > 0 ? `Manage ${photoCount} photos` : "Add photos"}
+          </button>
         </article>
 
         <article className="settings-card">
