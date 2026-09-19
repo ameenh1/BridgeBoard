@@ -95,43 +95,44 @@
 }
 
 .sound-waves {
-  height: 58px;
-  left: 90%;
+  height: 50px;
+  left: 88%;
+  pointer-events: none;
   position: absolute;
-  top: 15%;
-  transform: rotate(-40deg) scale(1.2);
-  width: 58px;
+  top: 28%;
+  transform: rotate(120deg) scaleX(-1) scale(.8);
+  transform-origin: center;
+  width: 50px;
   z-index: 4;
 }
 
 .sound-waves span {
-  border: 4px solid #f0656b;
+  border: 3px solid transparent;
   border-bottom-color: transparent;
   border-left-color: transparent;
+  border-right-color: #c74367;
+  border-top-color: #c74367;
   border-radius: 50%;
+  box-sizing: border-box;
+  left: 50%;
   position: absolute;
-  transform: rotate(45deg);
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .sound-waves span:nth-child(1) {
   height: 18px;
-  right: 4px;
-  top: 20px;
   width: 18px;
 }
 
 .sound-waves span:nth-child(2) {
-  height: 34px;
-  right: -1px;
-  top: 12px;
-  width: 34px;
+  height: 33px;
+  width: 33px;
 }
 
 .sound-waves span:nth-child(3) {
-  height: 50px;
-  right: -7px;
-  top: -56px;
-  width: 50px;
+  height: 48px;
+  width: 48px;
 }
 
 .login-form {
@@ -201,6 +202,21 @@
   color: var(--ink);
   font-family: var(--body-display);
   font-size: 16px;
+}
+
+.login-form,
+.login-form p,
+.login-form label,
+.login-form input,
+.login-form a,
+.continue-button,
+.google-button {
+  font-family: "Franklin Gothic Book", Arial, sans-serif;
+}
+
+.login-form > label,
+.password-heading label {
+  font-weight: 700;
 }
 
 .continue-button,
