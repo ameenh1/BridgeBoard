@@ -94,3 +94,23 @@ export function updateSettings(patch: Partial<ChildProfile>): ChildProfile {
   saveSettings(next);
   return next;
 }
+
+/**
+ * Whether a profile was actually set up on this device.
+ *
+ * `loadSettings()` cannot answer this — it returns `DEFAULT_PROFILE` both when
+ * nothing is stored and when what is stored is unreadable. The shell needs the
+ * difference to decide between the setup screen and the board.
+ */
+export function hasStoredSettings(): boolean {
+  const storage = getStorage();
+  if (!storage) return false;
+
+  try {
+    const raw = storage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    return ChildProfileSchema.safeParse(JSON.parse(raw)).success;
+  } catch {
+    return false;
+  }
+}

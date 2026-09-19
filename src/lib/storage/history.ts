@@ -15,11 +15,34 @@ export type CommunicationHistoryEntry = {
   selectedLabel?: string;
 };
 
+/**
+ * Must stay in step with BoardType, in both directions.
+ *
+ * An entry whose boardType is missing from this list writes fine and then
+ * fails safeParse on the next read, which discards the *entire* log.
+ * `body_needs` was missing and did exactly that.
+ *
+ * `satisfies` rejects a value that is not a BoardType; the assignment below
+ * rejects a BoardType this list forgot. Together they make the drift a
+ * compile error instead of silent data loss.
+ */
+const STORED_BOARD_TYPES = [
+  "choice",
+  "feelings_needs",
+  "body_needs",
+  "yes_no",
+  "fallback",
+  "full_board",
+] as const satisfies readonly RenderableBoard["boardType"][];
+
+export const _everyBoardTypeIsStorable: (typeof STORED_BOARD_TYPES)[number] =
+  null as unknown as RenderableBoard["boardType"];
+
 const HistoryEntrySchema = z.object({
   id: z.string().min(1),
   timestamp: z.string().min(1),
   questionText: z.string().optional(),
-  boardType: z.enum(["choice", "feelings_needs", "yes_no", "fallback", "full_board"]),
+  boardType: z.enum(STORED_BOARD_TYPES),
   selectedVocabularyId: z.string().optional(),
   selectedLabel: z.string().optional(),
 });
