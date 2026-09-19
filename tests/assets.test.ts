@@ -196,6 +196,7 @@ describe("visual asset resolution", () => {
           return candidate("generated");
         }
       },
+      assetSearchMode: "generation_first",
       onEvent: (event) => events.push(`${event.type}:${event.resolution.source}`)
     });
 
