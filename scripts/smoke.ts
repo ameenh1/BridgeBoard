@@ -9,6 +9,14 @@ import {
   getPersonalCupsDemoBoard,
 } from "@/lib/board/demoBoards";
 import { temporaryMockClassifier } from "@/lib/ai/mockClassifier";
+import { getFullBoardCategories } from "@/lib/board/fullBoard";
+import {
+  clearSettings,
+  loadSettings,
+  saveSettings,
+  updateSettings,
+} from "@/lib/storage/settings";
+import { appendHistory, clearHistory, loadHistory } from "@/lib/storage/history";
 import { DEFAULT_PROFILE } from "@/types/profile";
 import type { ChildProfile } from "@/types/profile";
 import {
@@ -276,6 +284,102 @@ async function main() {
   );
   check("confusing question -> fallback", confusing.isFallback === true);
   check("confusing question fabricates nothing", confusing.choices.length === 2);
+
+  console.log("\n=== Full Board (manual, no AI) ===");
+
+  const categories = getFullBoardCategories();
+  check("seven categories", categories.length === 7, categories.length);
+  check(
+    "no empty category",
+    categories.every((c) => c.choices.length > 0),
+    categories.filter((c) => c.choices.length === 0).map((c) => c.label),
+  );
+  check(
+    "category order matches the spec",
+    categories.map((c) => c.label).join(",") ===
+      "Core,Needs,Feelings,Food,People,Places,Activities",
+    categories.map((c) => c.label),
+  );
+  check(
+    "every full board choice can be spoken",
+    categories.every((c) => c.choices.every((ch) => ch.spokenPhrase.length > 0)),
+  );
+
+  console.log("\n=== Settings persistence ===");
+
+  // No window yet: this is the SSR / storage-blocked path.
+  check("no storage -> defaults", loadSettings().maxChoices === DEFAULT_PROFILE.maxChoices);
+  check("save without storage does not throw", (() => {
+    try {
+      saveSettings({ ...DEFAULT_PROFILE, maxChoices: 6 });
+      return true;
+    } catch {
+      return false;
+    }
+  })());
+
+  const store = new Map<string, string>();
+  (globalThis as unknown as { window: unknown }).window = {
+    localStorage: {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    },
+  };
+
+  check("empty storage -> defaults", loadSettings().id === DEFAULT_PROFILE.id);
+
+  saveSettings({ ...DEFAULT_PROFILE, maxChoices: 6, quietMode: true });
+  check("settings round-trip: maxChoices", loadSettings().maxChoices === 6);
+  check("settings round-trip: quietMode", loadSettings().quietMode === true);
+
+  store.set("bridgeboard.profile.v1", "{ this is not json");
+  check("corrupted json -> defaults", loadSettings().maxChoices === 4);
+
+  store.set("bridgeboard.profile.v1", JSON.stringify({ id: "x", maxChoices: 3 }));
+  check("wrong shape -> defaults", loadSettings().maxChoices === 4);
+
+  store.set("bridgeboard.profile.v1", JSON.stringify({ totally: "different" }));
+  check("unknown shape -> defaults", loadSettings().visuals === "photos_first");
+
+  saveSettings({ ...DEFAULT_PROFILE, speechEnabled: false });
+  check("valid save overwrites corruption", loadSettings().speechEnabled === false);
+
+  const patched = updateSettings({ maxChoices: 2 });
+  check("updateSettings patches", patched.maxChoices === 2);
+  check("updateSettings persists", loadSettings().maxChoices === 2);
+  check("updateSettings preserves other fields", loadSettings().speechEnabled === false);
+
+  // An invalid value must not be written, or it becomes tomorrow's bad read.
+  saveSettings({ ...DEFAULT_PROFILE, maxChoices: 5 as unknown as 2 });
+  check("invalid profile refused", loadSettings().maxChoices === 2);
+
+  clearSettings();
+  check("clear -> defaults", loadSettings().maxChoices === DEFAULT_PROFILE.maxChoices);
+
+  console.log("\n=== Communication history ===");
+
+  check("history starts empty", loadHistory().length === 0);
+
+  appendHistory({ boardType: "choice", selectedLabel: "Waffles" }, false);
+  check("disabled history records nothing", loadHistory().length === 0);
+
+  appendHistory(
+    { boardType: "choice", questionText: "Do you want waffles?", selectedLabel: "Waffles" },
+    true,
+  );
+  check("enabled history records", loadHistory().length === 1);
+  check("entry has timestamp", Boolean(loadHistory()[0]?.timestamp));
+  check("entry has id", Boolean(loadHistory()[0]?.id));
+
+  store.set("bridgeboard.history.v1", "not json");
+  check("corrupted history -> empty", loadHistory().length === 0);
+
+  appendHistory({ boardType: "fallback" }, true);
+  check("history recovers after corruption", loadHistory().length === 1);
+
+  clearHistory();
+  check("history clears", loadHistory().length === 0);
 
   console.log(`\n${failures === 0 ? "ALL PASSED" : `${failures} FAILURE(S)`}\n`);
   process.exit(failures === 0 ? 0 : 1);

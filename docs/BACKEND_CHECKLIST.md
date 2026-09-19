@@ -32,7 +32,7 @@ Status as of the `backend` branch. Check items off as they land.
 | [x] | Allowlist helpers | `src/lib/vocabulary/vocabularyHelpers.ts` |
 | [x] | Fallback board exists and is tested | `src/lib/board/createFallbackBoard.ts` |
 | [x] | Static demo boards | `src/lib/board/demoBoards.ts` |
-| [x] | Smoke test over required cases | `npm run smoke` — 57 checks |
+| [x] | Smoke test over required cases | `npm run smoke` — 83 checks |
 
 ---
 
@@ -72,7 +72,7 @@ Fallback triggers (each returns `createFallbackBoard(reason)`):
 
 ---
 
-## Phase 3 — Images ← **NEXT**
+## Phase 3 — Images
 
 Priority order: personal photo → curated local → cached generated → pre-generated →
 background request → icon + text.
@@ -88,15 +88,15 @@ background request → icon + text.
 
 ---
 
-## Phase 4 — Persistence (localStorage first)
+## Phase 4 — Persistence (localStorage first) ✅
 
 | | Item | Detail |
 |---|---|---|
-| [ ] | `loadSettings()` / `saveSettings()` / `clearSettings()` | `src/lib/storage/settings.ts` |
-| [ ] | Corrupted JSON returns `DEFAULT_PROFILE` | wrap every read in try/catch; never throw |
-| [ ] | Persist: complexity, quiet mode, TTS, visuals, labels, history, last profile | |
-| [ ] | Personal demo vocabulary | profile-scoped |
-| [ ] | Optional communication history | after core works; never log audio |
+| [x] | `loadSettings()` / `saveSettings()` / `clearSettings()` | `src/lib/storage/settings.ts` |
+| [x] | Corrupted JSON returns `DEFAULT_PROFILE` | wrap every read in try/catch; never throw |
+| [x] | Persist: complexity, quiet mode, TTS, visuals, labels, history, last profile | |
+| [x] | Personal demo vocabulary | profile-scoped |
+| [x] | Optional communication history | after core works; never log audio |
 
 ---
 
@@ -185,3 +185,5 @@ list in the prompt; it withholds `spokenPhrase` by design.
   in Phase 2. Confirm nothing is expected to depend on it for the MVP.
 - Feelings demo board currently shows 4 emotions; the frontend mockup shows 6 plus
   "I need help" and "I need a break".
+- Personal vocabulary is a static server-side map. Caregiver photo *upload* needs
+  Person 1's uploader UI and a storage decision before it can be persisted.
