@@ -39,7 +39,7 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "more",
     category: "core",
     iconKey: "plus",
-    allowedForAI: false,
+    allowedForAI: true,
     isCore: true,
   },
   {
@@ -48,7 +48,7 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "stop",
     category: "core",
     iconKey: "hand",
-    allowedForAI: false,
+    allowedForAI: true,
     isCore: true,
   },
   {
@@ -66,7 +66,7 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "go",
     category: "core",
     iconKey: "arrow-right",
-    allowedForAI: false,
+    allowedForAI: true,
     isCore: true,
   },
   {
@@ -75,7 +75,7 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "again",
     category: "core",
     iconKey: "rotate-ccw",
-    allowedForAI: false,
+    allowedForAI: true,
     isCore: true,
   },
   {
@@ -93,6 +93,15 @@ export const CORE_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "No.",
     category: "core",
     iconKey: "x",
+    allowedForAI: true,
+    isCore: true,
+  },
+  {
+    id: "core_later",
+    label: "Later",
+    spokenPhrase: "Maybe later.",
+    category: "core",
+    iconKey: "clock",
     allowedForAI: true,
     isCore: true,
   },

@@ -4,7 +4,11 @@ import {
   AIClassificationSchema,
   MIN_AI_CONFIDENCE,
 } from "@/lib/validation/aiClassification";
-import { getApprovedVocabularyItem } from "@/lib/vocabulary/vocabularyHelpers";
+import {
+  getApprovedVocabularyItem,
+  isAIAllowedVocabulary,
+} from "@/lib/vocabulary/vocabularyHelpers";
+import { normalizeVocabularyId } from "@/lib/vocabulary/vocabularyAliases";
 import { resolveVocabularyChoice } from "@/lib/images/resolveVocabularyChoice";
 import { getBoardTitle, mapQuestionType } from "./boardTitles";
 import { createFallbackBoard } from "./createFallbackBoard";
@@ -53,9 +57,13 @@ export async function buildRenderableBoard(
     return createFallbackBoard("unknown_question");
   }
 
-  // Gate 5: the allowlist. Invented ids are dropped silently — a partial board
-  // of real vocabulary is still usable.
+  // Gate 5: the allowlist. Ids are first normalized across branch naming
+  // schemes, then checked against what we actually offer the model — existing
+  // in the catalog is not enough. Invented ids are dropped silently; a partial
+  // board of real vocabulary is still usable.
   const approvedItems = result.candidateVocabularyIds
+    .map(normalizeVocabularyId)
+    .filter(isAIAllowedVocabulary)
     .map(getApprovedVocabularyItem)
     .filter((item) => item !== undefined)
     .slice(0, profile.maxChoices);

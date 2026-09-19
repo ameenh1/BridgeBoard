@@ -20,6 +20,17 @@ export function isApprovedVocabulary(id: string): boolean {
   return byId.has(id);
 }
 
+/**
+ * The stricter check used on classifier output.
+ *
+ * Existing in the catalog is not enough — the item must also be one we offer
+ * the model. Otherwise a model that ignored the supplied list could put a
+ * grammar word like "want" on a board as if it were a standalone answer.
+ */
+export function isAIAllowedVocabulary(id: string): boolean {
+  return byId.get(id)?.allowedForAI === true;
+}
+
 export function getApprovedVocabularyItem(id: string): VocabularyItem | undefined {
   return byId.get(id);
 }

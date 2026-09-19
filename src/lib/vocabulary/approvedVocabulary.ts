@@ -32,6 +32,16 @@ const CONTEXT_VOCABULARY: VocabularyItem[] = [
     isCore: false,
   },
 
+  {
+    id: "food_eat",
+    label: "Eat",
+    spokenPhrase: "I want to eat.",
+    category: "food",
+    iconKey: "utensils",
+    allowedForAI: true,
+    isCore: true,
+  },
+
   // Feelings
   {
     id: "emotion_happy",

@@ -22,8 +22,13 @@ import type { ChildProfile } from "@/types/profile";
 import {
   getAIAllowedVocabulary,
   getCoreVocabulary,
+  isAIAllowedVocabulary,
   isApprovedVocabulary,
 } from "@/lib/vocabulary/vocabularyHelpers";
+import {
+  getVocabularyAliases,
+  normalizeVocabularyId,
+} from "@/lib/vocabulary/vocabularyAliases";
 
 let failures = 0;
 function check(name: string, condition: boolean, detail?: unknown) {
@@ -284,6 +289,92 @@ async function main() {
   );
   check("confusing question -> fallback", confusing.isFallback === true);
   check("confusing question fabricates nothing", confusing.choices.length === 2);
+
+  console.log("\n=== Cross-branch integration (Person 2's ids) ===");
+
+  // Their classifier emits a different naming scheme. Every alias must land on
+  // a real, AI-allowed item, or boards silently come back empty.
+  for (const [theirs, ours] of Object.entries(getVocabularyAliases())) {
+    check(
+      `${theirs} -> ${ours} resolves`,
+      isAIAllowedVocabulary(normalizeVocabularyId(theirs)),
+      normalizeVocabularyId(theirs),
+    );
+  }
+
+  const yesNoFromTheirIds = await buildRenderableBoard(
+    classification({
+      questionType: "yes_no",
+      topic: "activities",
+      questionText: "Do you want to go outside?",
+      candidateVocabularyIds: ["action_yes", "action_no", "action_later"],
+      confidence: 0.91,
+    }),
+    profile,
+  );
+  check(
+    "their yes/no ids build a real board",
+    yesNoFromTheirIds.isFallback === false,
+    yesNoFromTheirIds.isFallback,
+  );
+  check(
+    "their yes/no ids speak our phrases",
+    yesNoFromTheirIds.choices.map((c) => c.label).join(",") === "Yes,No,Later",
+    yesNoFromTheirIds.choices.map((c) => c.label),
+  );
+  check(
+    "their drink_water maps to our water",
+    (
+      await buildRenderableBoard(
+        classification({
+          topic: "drink",
+          candidateVocabularyIds: ["drink_water"],
+          confidence: 0.9,
+        }),
+        profile,
+      )
+    ).choices[0]?.spokenPhrase === "I want water.",
+  );
+
+  // Their schema allows 8 candidates; ours must not reject the whole response.
+  const eight = await buildRenderableBoard(
+    classification({
+      questionType: "feelings_needs",
+      topic: "feelings",
+      candidateVocabularyIds: [
+        "emotion_happy",
+        "emotion_sad",
+        "emotion_angry",
+        "emotion_worried",
+        "emotion_tired",
+        "emotion_overwhelmed",
+        "emotion_sick",
+        "need_help",
+      ],
+      confidence: 0.9,
+    }),
+    profile,
+  );
+  check("8 candidate ids accepted, not rejected", eight.isFallback === false);
+  check("8 candidates sliced to maxChoices", eight.choices.length === 4, eight.choices.length);
+
+  console.log("\n=== allowedForAI is enforced on the way in ===");
+
+  // Existing in the catalog is not enough. A grammar word must never become a
+  // standalone choice just because the model asked for it.
+  check("core_want is in the catalog", isApprovedVocabulary("core_want"));
+  check("core_want is NOT offered to the model", !isAIAllowedVocabulary("core_want"));
+  const grammar = await buildRenderableBoard(
+    classification({ candidateVocabularyIds: ["core_want", "core_i", "core_not"] }),
+    profile,
+  );
+  check("model cannot place grammar words on a board", grammar.isFallback === true);
+  const mixedGrammar = await buildRenderableBoard(
+    classification({ candidateVocabularyIds: ["food_waffles", "core_want"] }),
+    profile,
+  );
+  check("grammar word filtered from a mixed board", mixedGrammar.choices.length === 1);
+  check("real vocabulary survives", mixedGrammar.choices[0]?.id === "food_waffles");
 
   console.log("\n=== Full Board (manual, no AI) ===");
 

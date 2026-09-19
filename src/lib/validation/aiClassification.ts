@@ -33,7 +33,12 @@ export const AIClassificationSchema = z.object({
     "other",
   ]),
 
-  candidateVocabularyIds: z.array(z.string()).max(6),
+  // The team doc says 6, but Person 2's classifier emits up to 8. Rejecting an
+  // otherwise-good classification over a length we are about to slice anyway
+  // is the wrong failure: it discards real vocabulary and shows a fallback.
+  // Permissive on input, strict on output — `profile.maxChoices` is what
+  // actually bounds the board.
+  candidateVocabularyIds: z.array(z.string().min(1)).max(8),
 
   supportActions: z
     .array(

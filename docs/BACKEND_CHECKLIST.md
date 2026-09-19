@@ -32,7 +32,7 @@ Status as of the `backend` branch. Check items off as they land.
 | [x] | Allowlist helpers | `src/lib/vocabulary/vocabularyHelpers.ts` |
 | [x] | Fallback board exists and is tested | `src/lib/board/createFallbackBoard.ts` |
 | [x] | Static demo boards | `src/lib/board/demoBoards.ts` |
-| [x] | Smoke test over required cases | `npm run smoke` — 83 checks |
+| [x] | Smoke test over required cases | `npm run smoke` — 101 checks |
 
 ---
 
@@ -124,7 +124,7 @@ background request → icon + text.
 | [ ] | Tested at tablet width | primary target device |
 | [ ] | API cost controlled | demo mode short-circuits most calls |
 | [ ] | **Backup screen-capture demo video** | you own the final file — wifi dies at demos |
-| [ ] | README: setup + architecture diagram | |
+| [x] | README: setup + architecture diagram | pipeline diagram, setup, both integration contracts |
 | [ ] | Architecture notes for Devpost | |
 
 ---
@@ -176,6 +176,17 @@ list in the prompt; it withholds `spokenPhrase` by design.
 - **Person 1:** render a choice with a broken/missing `imageUrl` as text + icon.
   Per the failure matrix, a missing image must never block communication.
 - **Both:** rebase onto `main` before writing code.
+
+## Cross-branch integration
+
+- Person 2's classifier emits a different id scheme. Translated in
+  `src/lib/vocabulary/vocabularyAliases.ts` — delete that file if the catalogs are
+  ever reconciled properly.
+- Their schema allows 8 candidate ids; ours now accepts 8 and slices, rather than
+  rejecting an otherwise-good classification.
+- Their branch is not a Next app (no `src/`, own `package.json`/`tsconfig.json`).
+  It cannot merge as-is — someone has to move `lib/` and `data/` under `src/` and
+  drop the duplicate configs.
 
 ## Open questions
 
