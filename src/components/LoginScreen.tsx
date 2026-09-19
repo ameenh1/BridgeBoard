@@ -142,10 +142,6 @@ export function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }
 
           {!configured ? <p role="alert" className="auth-error">Supabase is not configured yet.</p> : null}
 
-          <p className="auth-note">
-            Your account is secured by Supabase. Board settings and history are
-            saved to your account when you are signed in.
-          </p>
         </form>
       </section>
     </main>
