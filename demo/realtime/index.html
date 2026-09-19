@@ -71,6 +71,8 @@
       let dataChannel = null;
       const partialByItem = new Map();
       const cards = new Map();
+      let assetRequestVersion = 0;
+      let activeAssetRequest = null;
 
       function setStatus(message) {
         status.textContent = message;
@@ -164,7 +166,28 @@
         return card;
       }
 
+      function showPreparingCard() {
+        const card = document.createElement("article");
+        card.className = "asset pending";
+        card.dataset.pending = "true";
+        card.innerHTML = `<img src="/default-images/placeholder.svg" alt="Preparing visual assets"><strong>Preparing visuals</strong><br><small>Fast local fallback while assets resolve...</small>`;
+        board.appendChild(card);
+      }
+
+      function removePreparingCard() {
+        board.querySelector('[data-pending="true"]')?.remove();
+      }
+
+      function showNoOptionsCard() {
+        removePreparingCard();
+        const card = document.createElement("article");
+        card.className = "asset";
+        card.innerHTML = `<img src="/default-images/placeholder.svg" alt="No explicit options recognized"><strong>No explicit options</strong><br><small>Try a short choice question or repeat.</small>`;
+        board.appendChild(card);
+      }
+
       function renderResolution(resolution) {
+        removePreparingCard();
         const card = cardFor(resolution);
         const image = card.querySelector("img");
         const label = card.querySelector("strong");
@@ -176,39 +199,60 @@
       }
 
       async function processFinalTranscript(transcript) {
+        const requestVersion = ++assetRequestVersion;
+        activeAssetRequest?.abort();
+        activeAssetRequest = new AbortController();
         finalText.textContent = transcript;
-        pipeline.textContent = "Finalized transcript received. Showing fallback while assets resolve...";
+        pipeline.textContent = "Finalized transcript received. Showing fast fallback while assets resolve...";
         board.replaceChildren();
         cards.clear();
-        const response = await fetch("/api/resolve-assets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript })
-        });
-        if (!response.ok) {
-          pipeline.textContent = `Asset pipeline failed: ${await response.text()}`;
-          return;
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { value, done } = await reader.read();
-          buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            const event = JSON.parse(line);
-            if (event.type === "fallback" || event.type === "ready" || event.type === "error") {
-              renderResolution(event.resolution);
-              pipeline.textContent = event.type === "fallback"
-                ? "Fallback shown. Waiting for cache, web, or generated assets..."
-                : `Asset update: ${event.resolution.source}`;
-            }
-            if (event.type === "done") pipeline.textContent = "Asset pipeline complete.";
+        showPreparingCard();
+        try {
+          const response = await fetch("/api/resolve-assets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transcript }),
+            signal: activeAssetRequest.signal
+          });
+          if (!response.ok) {
+            throw new Error(await response.text());
           }
-          if (done) break;
+
+          const reader = response.body?.getReader();
+          if (!reader) throw new Error("The asset stream is unavailable.");
+          const decoder = new TextDecoder();
+          let buffer = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              const event = JSON.parse(line);
+              if (requestVersion !== assetRequestVersion) continue;
+              if (event.type === "classification") {
+                if (!Array.isArray(event.requests) || event.requests.length === 0) {
+                  showNoOptionsCard();
+                  pipeline.textContent = "No explicit caregiver options were recognized.";
+                }
+              }
+              if (event.type === "fallback" || event.type === "ready" || event.type === "error") {
+                renderResolution(event.resolution);
+                pipeline.textContent = event.type === "fallback"
+                  ? "Fast fallback shown. Updating with cache, web, or generated assets..."
+                  : `Asset update: ${event.resolution.source}`;
+              }
+              if (event.type === "done") pipeline.textContent = "Asset pipeline complete.";
+            }
+            if (done) break;
+          }
+        } catch (error) {
+          if (error?.name === "AbortError" || requestVersion !== assetRequestVersion) return;
+          pipeline.textContent = `Asset pipeline failed: ${error instanceof Error ? error.message : String(error)}`;
+          showNoOptionsCard();
+        } finally {
+          if (requestVersion === assetRequestVersion) activeAssetRequest = null;
         }
       }
 

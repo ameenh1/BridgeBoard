@@ -44,7 +44,7 @@ The service-role key is never sent to the browser.
 
 ## Runtime flow
 
-`resolveVisualAssets()` classifies the current finalized utterance with a bounded recent context window, checks local and shared caches, emits a placeholder immediately on a miss, and starts web discovery and image generation concurrently. The first validated image is cached and emitted as a `ready` event.
+`resolveVisualAssets()` classifies the current finalized utterance with a bounded recent context window, checks local and shared caches, emits a local symbol immediately on a miss, and starts web discovery and image generation concurrently. The first validated image is cached and emitted as a `ready` event.
 
 ```ts
 import {
@@ -79,7 +79,7 @@ Open `http://localhost:3000`, allow microphone access, and say one of these:
 - “Do you want your blue cup or red cup?”
 - “Do you want waffles or pancakes?”
 
-The demo shows the partial transcript, finalized caregiver utterance, approved classification, placeholder visuals immediately, and web/generated/cache replacements as they arrive. The demo also has typed transcript buttons, so the classifier and fallback UI can be tested without an API key. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
+The demo shows the partial transcript, finalized caregiver utterance, approved classification, local visual symbols immediately, and web/generated/cache replacements as they arrive. It keeps a process hot cache and ignores stale asset streams when caregiver turns arrive quickly. The demo also has typed transcript buttons, so the classifier and fallback UI can be tested without an API key. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
 
 For the automated local checks:
 

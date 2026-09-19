@@ -8,10 +8,12 @@ import {
   createSupabaseAssetCache,
   resolveVisualAssets
 } from "../../lib/server.js";
+import { MemoryAssetCache } from "../../lib/assets/cache.js";
 
 const demoDirectory = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const publicDirectory = resolve(demoDirectory, "../../public");
 const port = Number(process.env.BRIDGEBOARD_DEMO_PORT ?? 3000);
+const demoLocalAssetCache = new MemoryAssetCache();
 
 function sendJson(response: ServerResponse, status: number, payload: unknown): void {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -112,6 +114,7 @@ const server = createServer(async (request, response) => {
       const result = await resolveVisualAssets({
         transcript: body.transcript,
         recentContext,
+        localCache: demoLocalAssetCache,
         providers: createOpenAIAssetProviders(),
         sharedCache: createOptionalSharedCache(),
         onEvent: (event) => writeNdjson(response, event)

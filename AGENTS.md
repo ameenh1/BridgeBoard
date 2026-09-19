@@ -21,6 +21,7 @@
 - The AI branch has no frontend framework/runtime, so the Realtime integration is framework-neutral and the end-to-end microphone check uses a small localhost Node demo. Keep that demo local-only; production apps should place the same session handler behind their own auth and rate limits.
 - The first demo server served `/` with `application/octet-stream` because MIME detection used the URL `/` instead of the resolved `index.html` path; browsers downloaded the page. Detect static content type from the resolved file path and verify the root response as `text/html`.
 - The Realtime demo initially sent a transcription-only config to `/v1/realtime/calls`, which caused the local session route to return HTTP 500. The unified WebRTC endpoint requires `type: "realtime"` and a session `model`; keep `gpt-live-transcribe` under `audio.input.transcription` and set server VAD `create_response: false` for transcription-only caregiver audio.
+- Placeholder-only manifest entries made the fast path look empty and shared-cache lookups could delay fallback paint; common demo choices now have local SVG symbols, the demo keeps a process hot cache, and fallback events are emitted before the shared lookup.
 
 ## Repository workflow
 

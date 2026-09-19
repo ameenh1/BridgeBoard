@@ -44,6 +44,7 @@ function createSharedCache(): SharedAssetCache {
 describe("visual asset resolution", () => {
   it("emits fallback immediately and then the first valid asset", async () => {
     const events: string[] = [];
+    const fallbackUrls: string[] = [];
     let webStarted = false;
     let generationStarted = false;
     const providers: AssetProviders = {
@@ -63,10 +64,17 @@ describe("visual asset resolution", () => {
       transcript: "Do you want waffles or pancakes?",
       providers,
       sharedCache: createSharedCache(),
-      onEvent: (event) => events.push(`${event.type}:${event.resolution.source}`)
+      onEvent: (event) => {
+        events.push(`${event.type}:${event.resolution.source}`);
+        if (event.type === "fallback") fallbackUrls.push(event.resolution.assetUrl);
+      }
     });
 
-    expect(events[0]).toBe("fallback:placeholder");
+    expect(events[0]).toBe("fallback:local");
+    expect(fallbackUrls).toEqual([
+      "/default-images/waffles.svg",
+      "/default-images/pancakes.svg"
+    ]);
     expect(webStarted).toBe(true);
     expect(generationStarted).toBe(true);
     await new Promise((resolve) => setTimeout(resolve, 12));

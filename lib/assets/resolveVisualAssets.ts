@@ -40,12 +40,13 @@ export type ResolveVisualAssetsResult = {
 };
 
 function fallbackResolution(request: VisualAssetRequest): AssetResolution {
+  const assetUrl = IMAGE_MANIFEST[request.vocabularyId] ?? "/default-images/placeholder.svg";
   return {
     assetKey: request.cacheKey,
     vocabularyId: request.vocabularyId,
     status: "fallback",
-    source: "placeholder",
-    assetUrl: IMAGE_MANIFEST[request.vocabularyId] ?? "/default-images/placeholder.svg"
+    source: IMAGE_MANIFEST[request.vocabularyId] ? "local" : "placeholder",
+    assetUrl
   };
 }
 
@@ -218,6 +219,10 @@ export async function resolveVisualAssets(
       continue;
     }
 
+    // Paint the local symbol before waiting on a network-backed shared cache.
+    // The shared lookup and both AI providers remain background work.
+    emit(options, { type: "fallback", resolution: fallback });
+
     const sharedRecord = options.sharedCache
       ? await options.sharedCache.get(request.cacheKey).catch((error) => {
           console.error("Shared asset cache lookup failed; continuing with fallback.", error);
@@ -240,7 +245,6 @@ export async function resolveVisualAssets(
       continue;
     }
 
-    emit(options, { type: "fallback", resolution: fallback });
     pendingWork.push(resolveMiss(request, { ...options, localCache }, fallback));
   }
 

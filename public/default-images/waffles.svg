@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Waffles">
+  <rect width="512" height="512" rx="48" fill="#fff7df"/>
+  <path d="M104 174h304l-30 214H134l-30-214Z" fill="#e7a52d" stroke="#4b3214" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M132 174c0-34 56-60 124-60s124 26 124 60" fill="#f6c65d" stroke="#4b3214" stroke-width="16"/>
+  <path d="M164 195l24 170M228 195l14 170M292 195l-4 170M356 195l-24 170M122 250h268M130 310h252" fill="none" stroke="#9c641c" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="352" cy="126" r="24" fill="#ef233c"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Pancakes">
+  <rect width="512" height="512" rx="48" fill="#fff7df"/>
+  <ellipse cx="256" cy="390" rx="170" ry="34" fill="#d68a27" stroke="#4b3214" stroke-width="16"/>
+  <ellipse cx="256" cy="342" rx="154" ry="34" fill="#f0b34b" stroke="#4b3214" stroke-width="16"/>
+  <ellipse cx="256" cy="294" rx="140" ry="34" fill="#f7c966" stroke="#4b3214" stroke-width="16"/>
+  <ellipse cx="256" cy="246" rx="126" ry="34" fill="#ffdc83" stroke="#4b3214" stroke-width="16"/>
+  <path d="M256 112c-20 34-17 58 0 78 18-20 21-44 0-78Z" fill="#ef233c" stroke="#4b3214" stroke-width="12"/>
+  <path d="M256 188v50" stroke="#b96f1f" stroke-width="12" stroke-linecap="round"/>
+</svg>

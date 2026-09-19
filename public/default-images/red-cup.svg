@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Red cup">
+  <rect width="512" height="512" rx="48" fill="#fff0f0"/>
+  <path d="M138 132h236v190c0 50-40 90-90 90h-56c-50 0-90-40-90-90V132Z" fill="#ef233c" stroke="#12213a" stroke-width="18"/>
+  <path d="M374 178h34c42 0 76 34 76 76s-34 76-76 76h-38" fill="none" stroke="#12213a" stroke-width="18" stroke-linecap="round"/>
+  <ellipse cx="256" cy="132" rx="118" ry="30" fill="#c9162d" stroke="#12213a" stroke-width="18"/>
+  <path d="M178 226c32 17 124 17 156 0" fill="none" stroke="#ff7180" stroke-width="12" stroke-linecap="round"/>
+</svg>
