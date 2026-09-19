@@ -9,7 +9,8 @@
     "lint": "eslint",
     "smoke": "tsx scripts/smoke.ts",
     "prebuild": "tsx scripts/generateImageManifest.ts",
-    "images:manifest": "tsx scripts/generateImageManifest.ts"
+    "images:manifest": "tsx scripts/generateImageManifest.ts",
+    "images:check": "tsx scripts/checkImages.ts"
   },
   "dependencies": {
     "lucide-react": "^1.47.0",

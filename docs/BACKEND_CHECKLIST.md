@@ -77,15 +77,28 @@ Fallback triggers (each returns `createFallbackBoard(reason)`):
 Priority order: personal photo → curated local → cached generated → pre-generated →
 background request → icon + text.
 
+**Scoped complete.** The cache and the resolve endpoint are deliberately not
+built — see "Deliberately not built" below.
+
 | | Item | Detail |
 |---|---|---|
-| [ ] | `ImageCacheEntry` type (deferred: nothing to cache until assets exist) | id, normalizedKey, vocabularyId, label, styleVersion, imageUrl, source, status, accessCount, lastAccessedAt, createdAt |
-| [ ] | `createImageCacheKey(label, styleVersion)` | lowercase, strip punctuation, hyphenate |
+| [x] | Catalog references all 19 expected assets | so generated artwork is actually used when it lands |
+| [x] | `npm run images:check` | prints exactly which files are still missing |
+| [~] | `ImageCacheEntry` type | not built: nothing generates images at runtime, so there is nothing to cache |
+| [~] | `createImageCacheKey(label, styleVersion)` | not built: same reason |
 | [x] | `findPersonalVocabularyImage(profileId, vocabId)` | profile-scoped map is fine for MVP |
 | [x] | Never await live generation in the request path | queue it, return the board now |
 | [x] | Build-time image manifest | `imageUrl` only emitted when the file exists; assets light up automatically when dropped in |
 | [ ] | `POST /api/images/resolve` | **only if** internal resolution proves insufficient |
 | [x] | Web image search stays caregiver-approved | never automatic, never child-facing |
+
+**Deliberately not built.** The doc says to prefer resolving internally and
+"do NOT build a separate endpoint merely because it sounds architectural."
+Pre-generated assets are static files the manifest already handles, so a cache
+would only matter for runtime generation — which the doc keeps out of the
+critical path and marks optional until after the MVP is stable. If runtime
+generation is ever added, the seam is the numbered gap in
+`resolveVocabularyChoice`.
 
 ---
 
