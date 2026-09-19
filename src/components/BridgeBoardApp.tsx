@@ -20,11 +20,18 @@ import {
 } from "@/lib/storage/history";
 import {
   clearSettings,
-  hasStoredSettings,
   loadSettings,
   updateSettings,
 } from "@/lib/storage/settings";
-import { endLocalSession, hasLocalSession, startLocalSession } from "@/lib/storage/localSession";
+import {
+  clearCloudHistory,
+  getCurrentUser,
+  loadCloudHistory,
+  loadCloudProfile,
+  saveCloudHistory,
+  saveCloudProfile,
+  signOutCloud,
+} from "@/lib/storage/cloud";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
@@ -82,10 +89,9 @@ export function BridgeBoardApp() {
  * would throw away the active board and every picture already resolved for it.
  */
 function BridgeBoardShell() {
-  // Safe as lazy initialisers: this component only ever mounts in the browser.
-  const [stage, setStage] = useState<Stage>(() =>
-    !hasLocalSession() ? "login" : hasStoredSettings() ? "app" : "setup",
-  );
+  const [stage, setStage] = useState<Stage>("login");
+  const [authReady, setAuthReady] = useState(false);
+  const [accountUserId, setAccountUserId] = useState<string>();
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
   const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
@@ -100,6 +106,44 @@ function BridgeBoardShell() {
   // Read inside callbacks that must not be re-created when settings change —
   // notably `say`, which the controllers close over.
   const profileRef = useRef(profile);
+
+  const openAccount = useCallback(async (userId: string) => {
+    const [cloudProfile, cloudHistory] = await Promise.all([
+      loadCloudProfile(userId),
+      loadCloudHistory(userId),
+    ]);
+    const nextProfile = cloudProfile ?? DEFAULT_PROFILE;
+    setAccountUserId(userId);
+    setProfile(nextProfile);
+    updateSettings(nextProfile);
+    setHistory(cloudHistory);
+    clearHistory();
+    for (const entry of cloudHistory) appendHistory(entry, true);
+    setStage(cloudProfile ? "app" : "setup");
+    setView("board");
+  }, []);
+
+  const handleAuthenticated = useCallback(async () => {
+    const user = await getCurrentUser();
+    if (user) await openAccount(user.id);
+  }, [openAccount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getCurrentUser()
+      .then(async (user) => {
+        if (cancelled) return;
+        if (user) await openAccount(user.id);
+        if (!cancelled) setAuthReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openAccount]);
+
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
@@ -147,8 +191,9 @@ function BridgeBoardShell() {
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
     const next = updateSettings(patch);
     setProfile(next);
+    if (accountUserId) void saveCloudProfile(accountUserId, next);
     if (patch.quietMode || patch.speechEnabled === false) cancelSpeech();
-  }, []);
+  }, [accountUserId]);
 
   const record = useCallback(
     (entry: Omit<CommunicationHistoryEntry, "id" | "timestamp">) => {
@@ -156,8 +201,12 @@ function BridgeBoardShell() {
       if (!current.historyEnabled) return;
       appendHistory(entry, true);
       setHistory(loadHistory());
+      if (accountUserId) {
+        const full = loadHistory().at(-1);
+        if (full) void saveCloudHistory(accountUserId, profileRef.current.id, full);
+      }
     },
-    [],
+    [accountUserId],
   );
 
   const chooseVocabulary = useCallback(
@@ -234,11 +283,14 @@ function BridgeBoardShell() {
   );
 
   const finishSetup = useCallback((next: ChildProfile) => {
-    const saved = updateSettings(next);
-    setProfile(saved);
-    setStage("app");
-    setView("board");
-  }, []);
+    void (async () => {
+      const saved = accountUserId ? await saveCloudProfile(accountUserId, next) : next;
+      updateSettings(saved);
+      setProfile(saved);
+      setStage("app");
+      setView("board");
+    })();
+  }, [accountUserId]);
 
   const resetProfile = useCallback(() => {
     if (!window.confirm("Reset this profile? Settings and history on this device will be erased.")) {
@@ -247,9 +299,10 @@ function BridgeBoardShell() {
     void stopListening();
     clearSettings();
     clearHistory();
-    endLocalSession();
+    void signOutCloud();
     setProfile(DEFAULT_PROFILE);
     setHistory([]);
+    setAccountUserId(undefined);
     setStage("login");
     setView("board");
   }, [stopListening]);
@@ -258,15 +311,15 @@ function BridgeBoardShell() {
     if (!window.confirm("Clear the history saved on this device?")) return;
     clearHistory();
     setHistory([]);
-  }, []);
+    if (accountUserId) void clearCloudHistory(accountUserId);
+  }, [accountUserId]);
+
+  if (!authReady) return <main className="boot-screen" aria-busy="true" />;
 
   if (stage === "login") {
     return (
       <LoginScreen
-        onContinue={() => {
-          startLocalSession();
-          setStage(hasStoredSettings() ? "profile" : "setup");
-        }}
+        onAuthenticated={() => void handleAuthenticated()}
       />
     );
   }

@@ -39,7 +39,7 @@
   --card-text-only: #fefaf0;
 
   --display: var(--font-display), "Francois One", Impact, sans-serif;
-  --body-display: "Arial Narrow", "Franklin Gothic Book", Arial, sans-serif;
+  --body-display: "Franklin Gothic Book";
 
   /* WCAG 2.5.5 floor. The frontend shipped 42px composer buttons. */
   --tap-min: 44px;
@@ -116,10 +116,7 @@ body {
 
 .feature-panel {
   background: var(--cream);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(24px, 4vw, 64px);
+  padding: 9% 0 0 16%;
 }
 
 .brand-lockup {
@@ -162,7 +159,9 @@ body {
 
 .plant-polypodium {
   right: -10%;
-  top: 0;
+  top: -14;
+  transform: rotate(230deg);
+  transform-origin: center;
   width: 40%;
 }
 
@@ -186,30 +185,85 @@ body {
   width: 100%;
 }
 
+.sound-waves {
+  height: 50px;
+  left: 88%;
+  pointer-events: none;
+  position: absolute;
+  top: 28%;
+  transform: rotate(120deg) scaleX(-1) scale(.8);
+  width: 50px;
+  z-index: 4;
+}
+
+.sound-waves span {
+  border: 3px solid transparent;
+  border-right-color: var(--coral);
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  box-sizing: border-box;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.sound-waves span:nth-child(1) { height: 18px; width: 18px; }
+.sound-waves span:nth-child(2) { height: 33px; width: 33px; }
+.sound-waves span:nth-child(3) { height: 48px; width: 48px; }
+
 .login-form {
-  width: min(520px, 100%);
+  letter-spacing: 0.01em;
+  width: min(520px, 80%);
 }
 
 .login-form h2 {
   font-family: var(--display);
-  font-size: clamp(30px, 3.6vw, 52px);
+  font-size: clamp(32px, 3.8vw, 56px);
   font-weight: 400;
+  letter-spacing: -0.01em;
   line-height: 1;
-  margin: 0 0 14px;
+  margin: 0 0 22px;
+  transform: translateY(8px);
 }
 
 .login-form > p {
   font-family: var(--body-display);
-  font-size: 18px;
-  margin: 0 0 34px;
+  font-size: 20px;
+  margin: 0 0 70px;
   opacity: 0.72;
+}
+
+.login-form > p,
+.login-form label,
+.login-form input,
+.password-heading a,
+.signup-prompt {
+  font-family: "Franklin Gothic Book";
+  letter-spacing: 0.01em;
+}
+
+.login-form input {
+  letter-spacing: 0.01em;
+}
+
+#email {
+  font-size: 24px;
+  letter-spacing: 0.025em;
+}
+
+.login-form label {
+  font-family: "Franklin Gothic Book";
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .login-form label {
   display: block;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
+  letter-spacing: 0.015em;
+  margin-bottom: 10px;
 }
 
 .login-form input {
@@ -218,9 +272,10 @@ body {
   border-radius: 3px;
   display: block;
   font: inherit;
-  font-size: 18px;
-  height: 60px;
-  padding: 0 14px;
+  font-size: 20px;
+  height: 68px;
+  letter-spacing: 0.015em;
+  padding: 0 16px;
   width: 100%;
 }
 
@@ -228,7 +283,7 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 18px;
 }
 
 .continue-button {
@@ -239,11 +294,150 @@ body {
   cursor: pointer;
   display: block;
   font: inherit;
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
-  height: 60px;
-  margin-top: 24px;
+  height: 68px;
+  letter-spacing: 0.015em;
+  margin-top: 20px;
   width: 100%;
+}
+
+.form-divider {
+  align-items: center;
+  color: #777;
+  display: flex;
+  gap: 14px;
+  margin: 18px 0;
+  text-align: center;
+}
+
+.form-divider::before,
+.form-divider::after {
+  background: var(--line);
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+
+.signup-prompt {
+  font-size: 18px !important;
+  letter-spacing: 0.01em;
+  margin: 20px 0 0 !important;
+  text-align: center;
+}
+
+.signup-prompt a,
+.signup-prompt button,
+.password-heading a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.signup-prompt button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.auth-error button {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: #a84443;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  margin-top: 3px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.auth-error {
+  align-items: flex-start;
+  background: #fff1ef;
+  border: 1px solid #f0b8b3;
+  border-radius: 10px;
+  color: #7f3736;
+  display: flex;
+  font-size: 17px;
+  gap: 10px;
+  line-height: 1.4;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+}
+
+.auth-error > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-error strong {
+  color: #71302f;
+  font-weight: 700;
+}
+
+.auth-error-icon {
+  align-items: center;
+  background: #df6866;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 1px;
+  width: 20px;
+}
+
+.auth-notice {
+  align-items: flex-start;
+  background: #eefaf2;
+  border: 1px solid #b9dfc3;
+  border-radius: 10px;
+  color: #356b47;
+  display: flex;
+  font-size: 17px;
+  gap: 10px;
+  line-height: 1.4;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+}
+
+.auth-notice > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-notice strong {
+  color: #285c3a;
+  font-weight: 700;
+}
+
+.auth-notice-icon {
+  align-items: center;
+  background: #61b379;
+  border-radius: 50%;
+  color: white;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 1px;
+  width: 20px;
+}
+
+.auth-note {
+  display: none;
 }
 
 .auth-note {

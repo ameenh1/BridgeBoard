@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { isSupabaseBrowserConfigured } from "@/lib/supabase/browser";
+import { signInWithPassword, signUpWithPassword } from "@/lib/storage/cloud";
 
 /**
  * Temporary local entry point.
@@ -13,11 +15,50 @@ import type { FormEvent } from "react";
  * preserves the intended design; the button text and the note below it say
  * plainly that nothing is being authenticated.
  */
-export function LoginScreen({ onContinue }: { onContinue: () => void }) {
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    // Deliberately reads nothing off the form.
+export function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
+  const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const [showSignupAction, setShowSignupAction] = useState(false);
+  const [notice, setNotice] = useState<string>();
+  const configured = isSupabaseBrowserConfigured();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onContinue();
+    setError(undefined);
+    setNotice(undefined);
+    setShowSignupAction(false);
+    if (!configured) {
+      setError("Supabase is not configured yet.");
+      return;
+    }
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "").trim();
+    const password = String(form.get("password") ?? "");
+    if (!email || password.length < 8) {
+      setError("Enter an email and a password with at least 8 characters.");
+      return;
+    }
+    setBusy(true);
+    const result = mode === "signIn"
+      ? await signInWithPassword(email, password)
+      : await signUpWithPassword(email, password);
+    setBusy(false);
+    if (result.error) {
+      if (mode === "signIn") {
+        setError("Account not found or the password is incorrect.");
+        setShowSignupAction(true);
+      } else {
+        setError(result.error.message);
+      }
+      return;
+    }
+    if (mode === "signUp" && result.needsEmailConfirmation) {
+      setNotice("Check your email to confirm your account, then sign in.");
+      setMode("signIn");
+      return;
+    }
+    onAuthenticated();
   }
 
   return (
@@ -43,30 +84,67 @@ export function LoginScreen({ onContinue }: { onContinue: () => void }) {
             height={720}
             priority
           />
+          <div className="sound-waves" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
       </section>
 
       <section className="feature-panel">
         <form className="login-form" onSubmit={handleSubmit}>
-          <h2>Welcome to BridgeBoard</h2>
-          <p>Everything runs on this device. Nothing here is sent anywhere.</p>
+          <h2>{mode === "signIn" ? "Welcome Back" : "Create your account"}</h2>
+          <p>{mode === "signIn" ? "Sign in to access your communication board" : "Save boards and history across devices"}</p>
 
           <label htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" placeholder="you@example.com" autoComplete="off" />
+          <input id="email" name="email" type="email" placeholder="you@example.com" autoComplete="email" />
 
           <div className="password-heading">
             <label htmlFor="password">Password</label>
           </div>
-          <input id="password" name="password" type="password" placeholder="Enter your password" autoComplete="off" />
+          <input id="password" name="password" type="password" placeholder="Enter your password" autoComplete={mode === "signIn" ? "current-password" : "new-password"} />
 
-          <button className="continue-button" type="submit">
-            Continue locally
+          <button className="continue-button" type="submit" disabled={busy}>
+            {busy ? "Working…" : mode === "signIn" ? "Continue" : "Create account"}
           </button>
 
+          <p className="signup-prompt">
+            <span>{mode === "signIn" ? "Don't have an account?" : "Already have an account?"}</span>{" "}
+            <button type="button" onClick={() => setMode(mode === "signIn" ? "signUp" : "signIn")}>
+              {mode === "signIn" ? "Sign up" : "Sign in"}
+            </button>
+          </p>
+
+          {error ? (
+            <div role="alert" className="auth-error">
+              <span className="auth-error-icon" aria-hidden="true">!</span>
+              <div>
+                <strong>We couldn&apos;t sign you in</strong>
+                <span>{error}</span>
+                {showSignupAction ? (
+                  <button type="button" onClick={() => { setMode("signUp"); setError(undefined); setShowSignupAction(false); }}>
+                    Create an account
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {notice ? (
+            <div role="status" className="auth-notice">
+              <span className="auth-notice-icon" aria-hidden="true">✓</span>
+              <div>
+                <strong>Account created</strong>
+                <span>{notice}</span>
+              </div>
+            </div>
+          ) : null}
+
+          {!configured ? <p role="alert" className="auth-error">Supabase is not configured yet.</p> : null}
+
           <p className="auth-note">
-            Account sign-in will be connected later. These fields are
-            placeholders — you can leave them blank, and whatever you type is
-            ignored, not saved, and never transmitted.
+            Your account is secured by Supabase. Board settings and history are
+            saved to your account when you are signed in.
           </p>
         </form>
       </section>
