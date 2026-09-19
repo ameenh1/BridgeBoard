@@ -10,7 +10,7 @@
 
 - Keep browser code limited to contracts, speech fallback, and cache events; OpenAI and Supabase admin clients stay server-only.
 - OpenAI web search returns sources, not trusted image bytes. Validate HTTPS, allowed hosts, MIME type, magic bytes, and size before caching a candidate.
-- On a cache miss, use the configured asset search mode: generation-first avoids a web-search charge when generation succeeds, while parallel/web-first preserve the first-validated-result race. Keep fallback events internal to the demo UI.
+- On a cache miss, default to generation-first so successful generation incurs no web-search call. Keep parallel/web-first available explicitly, treat `off` as generation-only, and keep fallback events internal to the demo UI.
 - If dependency installation reports blocked optional scripts or audit findings, record the exact result and verify typecheck/tests before changing versions or using force fixes.
 - Use the Realtime unified WebRTC endpoint from a server route. The browser may send SDP, but it must never receive the standard OpenAI API key.
 
@@ -27,6 +27,7 @@
 - Unsplash negotiated AVIF because the downloader advertised it before the supported formats, so valid web results were rejected by byte validation. Prefer PNG/JPEG/WebP in the request `Accept` header and keep the validator/cache format set consistent.
 - Unapproved visuals must come only from explicit concrete caregiver-spoken concepts returned in a separate structured field; hash those concepts for cache keys and cap the total requests per turn so transcript text is not stored and image calls do not grow without bound.
 - Tests that assert a specific asset search mode must pass `assetSearchMode` explicitly because the dotenv-loaded `.env.local` runtime setting can otherwise change their provider-call expectations.
+- The local configuration once forced `parallel`, causing paid web searches even when generation won, while the documented `off` mode also skipped generation. Keep committed and local defaults on `generation_first`, make `off` generation-only, and use `AI_ASSET_SEARCH_ENABLED=false` when web discovery must be disabled regardless of mode.
 - Realtime may finalize “bath room” as aliases or separate items, and the resolver can emit local events before its result returns. Keep approved speech keywords plus the bounded two-second fragment seam, clear partial/context state at session boundaries, buffer asset events until classification is sent, and regression-test aliases, isolated fragments, and verified local assets.
 
 ## Repository workflow

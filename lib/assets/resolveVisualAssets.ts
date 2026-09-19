@@ -134,7 +134,7 @@ async function resolveMiss(
   if (!candidate) {
     emit(options, {
       type: "error",
-      resolution: { ...fallback, status: "error", error: "Web discovery and image generation returned no valid asset." }
+      resolution: { ...fallback, status: "error", error: "No configured image provider returned a valid asset." }
     });
     return;
   }
@@ -222,7 +222,8 @@ async function findProviderCandidate(
   mode: AssetSearchMode
 ): Promise<{ candidate: ImageCandidate | null; allProvidersSettled: Promise<unknown> }> {
   if (mode === "off") {
-    return { candidate: null, allProvidersSettled: Promise.resolve() };
+    const generated = await safeProviderCall("Image generation", () => providers.generateImage(request));
+    return { candidate: generated, allProvidersSettled: Promise.resolve() };
   }
 
   if (mode === "generation_first") {

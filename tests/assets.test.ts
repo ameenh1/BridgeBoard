@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MemoryAssetCache } from "../lib/assets/cache.js";
 import { validateImageBytes } from "../lib/assets/imageValidation.js";
 import { createOpenAIAssetProviders } from "../lib/assets/openaiAssetProviders.js";
@@ -242,6 +242,111 @@ describe("visual asset resolution", () => {
     expect(generationCalls).toBe(2);
     expect(webCalls).toBe(0);
     expect(events).toContain("ready:generated");
+  });
+
+  it("uses web search only after generation returns no candidate", async () => {
+    const calls: string[] = [];
+    const readySources: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Do you want waffles or pancakes?",
+      maxVisualAssets: 1,
+      providers: {
+        generateImage: async () => {
+          calls.push("generation");
+          return null;
+        },
+        discoverWebImage: async () => {
+          calls.push("web");
+          return candidate("web");
+        }
+      },
+      assetSearchMode: "generation_first",
+      onEvent: (event) => {
+        if (event.type === "ready") readySources.push(event.resolution.source);
+      }
+    });
+
+    await result.pending;
+    expect(calls).toEqual(["generation", "web"]);
+    expect(readySources).toEqual(["web"]);
+  });
+
+  it("uses web search after generation throws", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const calls: string[] = [];
+    try {
+      const result = await resolveVisualAssets({
+        transcript: "Do you want waffles or pancakes?",
+        maxVisualAssets: 1,
+        providers: {
+          generateImage: async () => {
+            calls.push("generation");
+            throw new Error("generation unavailable");
+          },
+          discoverWebImage: async () => {
+            calls.push("web");
+            return candidate("web");
+          }
+        },
+        assetSearchMode: "generation_first"
+      });
+
+      await result.pending;
+      expect(calls).toEqual(["generation", "web"]);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("keeps generation enabled while web search mode is off", async () => {
+    let generationCalls = 0;
+    let webCalls = 0;
+    const readySources: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Do you want waffles or pancakes?",
+      maxVisualAssets: 1,
+      providers: {
+        generateImage: async () => {
+          generationCalls += 1;
+          return candidate("generated");
+        },
+        discoverWebImage: async () => {
+          webCalls += 1;
+          return candidate("web");
+        }
+      },
+      assetSearchMode: "off",
+      onEvent: (event) => {
+        if (event.type === "ready") readySources.push(event.resolution.source);
+      }
+    });
+
+    await result.pending;
+    expect(generationCalls).toBe(1);
+    expect(webCalls).toBe(0);
+    expect(readySources).toEqual(["generated"]);
+  });
+
+  it("keeps web-first resolution from starting generation when web succeeds", async () => {
+    const calls: string[] = [];
+    const result = await resolveVisualAssets({
+      transcript: "Do you want waffles or pancakes?",
+      maxVisualAssets: 1,
+      providers: {
+        discoverWebImage: async () => {
+          calls.push("web");
+          return candidate("web");
+        },
+        generateImage: async () => {
+          calls.push("generation");
+          return candidate("generated");
+        }
+      },
+      assetSearchMode: "web_first"
+    });
+
+    await result.pending;
+    expect(calls).toEqual(["web"]);
   });
 });
 

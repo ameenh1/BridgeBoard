@@ -1,6 +1,6 @@
 # BridgeBoard AI layer
 
-BridgeBoard turns finalized caregiver context into a constrained set of approved AAC vocabulary IDs, then resolves the corresponding visuals from local cache, Supabase Storage, web candidates, or generated assets. It never claims to know the communicator's thoughts or intended response.
+BridgeBoard turns finalized caregiver context into a constrained set of approved AAC vocabulary IDs, then resolves the corresponding visuals from local cache, Supabase Storage, generated assets, or web fallback candidates. It never claims to know the communicator's thoughts or intended response.
 
 This branch contains the framework-neutral AI and asset pipeline. The Figma Make frontend can consume the browser-safe exports from `lib/index.ts`; server integrations use `lib/server.ts`.
 
@@ -26,7 +26,7 @@ OPENAI_REALTIME_MODEL=gpt-realtime-2.1-mini
 OPENAI_REALTIME_TRANSCRIPTION_MODEL=gpt-live-transcribe
 ```
 
-Never use a `NEXT_PUBLIC_` prefix and never commit `.env.local`. Live calls are disabled by setting `AI_LIVE_CLASSIFIER_ENABLED=false`, `AI_ASSET_SEARCH_ENABLED=false`, or `AI_IMAGE_GENERATION_ENABLED=false`.
+Never use a `NEXT_PUBLIC_` prefix and never commit `.env.local`. Live calls are disabled by setting `AI_LIVE_CLASSIFIER_ENABLED=false`, `AI_ASSET_SEARCH_ENABLED=false`, or `AI_IMAGE_GENERATION_ENABLED=false`. `AI_ASSET_SEARCH_ENABLED=false` is the hard kill switch for web discovery regardless of the selected provider order.
 
 ## Supabase asset cache
 
@@ -44,7 +44,7 @@ The service-role key is never sent to the browser.
 
 ## Runtime flow
 
-`resolveVisualAssets()` classifies the current finalized utterance with a bounded recent context window, checks local and shared caches, emits a local symbol immediately on a miss, and starts web discovery and image generation concurrently. The first validated image is cached and emitted as a `ready` event.
+`resolveVisualAssets()` classifies the current finalized utterance with a bounded recent context window, checks local and shared caches, and emits a local symbol immediately on a miss. By default it tries image generation first and starts web discovery only when generation returns no valid image. The first validated image is cached and emitted as a `ready` event.
 
 ```ts
 import {
@@ -80,7 +80,7 @@ Open `http://localhost:3000`, allow microphone access, and say one of these:
 - “Do you want waffles or pancakes?”
 - “Do you want to go to the bathroom?”
 
-The demo shows the partial transcript, finalized caregiver utterance, approved classification, and labeled loading cards while real local, cached, searched, or generated images resolve. Bathroom questions recognize common speech variants such as “bath room,” “restroom,” “potty,” and “washroom,” and the microphone carries a two-fragment, two-second context window so a split “bath” + “room” still resolves to Bathroom, Yes, No, and Help. Those four core visuals are bundled as verified local assets for immediate display; placeholders are never presented as final assets. The generic transcript field and microphone both use the same `/api/resolve-assets` route. Explicit concrete concepts spoken by the caregiver can produce dynamic, hashed asset requests even when they are not in the approved vocabulary. The default `AI_ASSET_SEARCH_MODE=parallel` races web discovery and image generation on a cache miss; set it to `generation_first` to avoid a web-search call when generation succeeds, `web_first` to prefer existing web imagery, or `off` to disable web search. The board accepts up to `AI_MAX_VISUAL_ASSETS` concepts per turn. It keeps a process hot cache and ignores stale asset streams when caregiver turns arrive quickly. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
+The demo shows the partial transcript, finalized caregiver utterance, approved classification, and labeled loading cards while real local, cached, searched, or generated images resolve. Bathroom questions recognize common speech variants such as “bath room,” “restroom,” “potty,” and “washroom,” and the microphone carries a two-fragment, two-second context window so a split “bath” + “room” still resolves to Bathroom, Yes, No, and Help. Those four core visuals are bundled as verified local assets for immediate display; placeholders are never presented as final assets. The generic transcript field and microphone both use the same `/api/resolve-assets` route. Explicit concrete concepts spoken by the caregiver can produce dynamic, hashed asset requests even when they are not in the approved vocabulary. The default `AI_ASSET_SEARCH_MODE=generation_first` avoids a web-search call whenever generation succeeds; set it to `parallel` to race both providers, `web_first` to prefer existing web imagery, or `off` for generation-only resolution with no web search. The board accepts up to `AI_MAX_VISUAL_ASSETS` concepts per turn. It keeps a process hot cache and ignores stale asset streams when caregiver turns arrive quickly. A real `OPENAI_API_KEY` is required for microphone transcription, web discovery, and image generation. Supabase cache hits require the migration, Storage bucket, and server-only Supabase variables described above.
 
 For the automated local checks:
 
