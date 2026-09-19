@@ -10,6 +10,7 @@ import {
 } from "@/lib/board/demoBoards";
 import { temporaryMockClassifier } from "@/lib/ai/mockClassifier";
 import { getFullBoardCategories } from "@/lib/board/fullBoard";
+import { DEMO_PROMPTS } from "@/lib/demo/demoPrompts";
 import { imageExists } from "@/lib/images/imageManifest";
 import {
   clearSettings,
@@ -95,10 +96,8 @@ async function main() {
   );
 
   check(
-    "unknown prompt returns no demo board",
-    getDemoBoardForQuestion(
-      "Should we maybe go after you finish that unless you want something different?",
-    ) === null,
+    "an unscripted question returns no demo board",
+    getDemoBoardForQuestion("What did you think of the film last night?") === null,
   );
 
   console.log("\n=== Allowlist ===");
@@ -309,6 +308,59 @@ async function main() {
   );
   check("confusing question -> fallback", confusing.isFallback === true);
   check("confusing question fabricates nothing", confusing.choices.length === 2);
+
+  console.log("\n=== Demo script: every chip lands on its board ===");
+
+  // The chips the UI renders come from DEMO_PROMPTS, and the matcher keys off
+  // the same strings. If those ever drift apart a chip silently falls through
+  // to the live classifier, which is the one thing the chips exist to prevent.
+  const EXPECTED: Record<string, string> = {
+    breakfast: "choice",
+    feelings: "feelings_needs",
+    "personal-cups": "choice",
+    uncertain: "fallback",
+  };
+
+  for (const prompt of DEMO_PROMPTS) {
+    const board = getDemoBoardForQuestion(prompt.text);
+    check(`chip "${prompt.label}" is recognised`, board !== null, prompt.text);
+    check(
+      `chip "${prompt.label}" -> ${EXPECTED[prompt.id]}`,
+      board?.boardType === EXPECTED[prompt.id],
+      board?.boardType,
+    );
+  }
+
+  // The safety demo must not depend on how the classifier happens to behave.
+  const uncertainPrompt = DEMO_PROMPTS.find((d) => d.id === "uncertain");
+  const uncertain = uncertainPrompt
+    ? getDemoBoardForQuestion(uncertainPrompt.text)
+    : null;
+  check("uncertainty demo is deterministic, not classifier-dependent", uncertain !== null);
+  check("uncertainty demo is a fallback", uncertain?.isFallback === true);
+  check("uncertainty demo fabricates nothing", uncertain?.choices.length === 2);
+
+  // Tolerate speech-recognition variation on the scripted lines.
+  for (const variant of [
+    "do you want waffles or pancakes",
+    "So, do you want waffles or pancakes?",
+    "how're you feeling today?",
+    "How do you feel?",
+    "do you want your red cup",
+  ]) {
+    check(`STT variant recognised: "${variant}"`, getDemoBoardForQuestion(variant) !== null);
+  }
+
+  // ...but an ordinary question must still reach the classifier.
+  for (const passthrough of [
+    "Do you want to go to the park?",
+    "What did you do at school?",
+  ]) {
+    check(
+      `not hijacked by a demo matcher: "${passthrough}"`,
+      getDemoBoardForQuestion(passthrough) === null,
+    );
+  }
 
   console.log("\n=== Cross-branch integration (Person 2's ids) ===");
 

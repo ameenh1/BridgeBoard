@@ -34,7 +34,7 @@ teammate conversation. **Me** = I can do it on request.
 | [ ] | Me | Swap mock → Person 2's `classifyQuestion` | one function body in `src/lib/ai/classifyQuestion.ts`; flip `USING_MOCK` in the same commit. No gate downstream changes |
 | [ ] | Me | Aliases for any new ids they emit | `src/lib/vocabulary/vocabularyAliases.ts` |
 | [ ] | You/P1 | Point the UI at `POST /api/classify-question` | contract is in the README and below |
-| [ ] | Me | `/dev` diagnostics page *(optional)* | fires every demo prompt, dumps the board + health. Answers "backend bug or wiring bug?" in seconds. Deliberately unstyled, not child-facing |
+| [x] | Me | `/dev` diagnostics page | done — fires every demo prompt, dumps boards + health |
 
 ### Re-run the gate after each merge
 
@@ -81,7 +81,7 @@ generation. All Phase 2 or later, all gated on the demo working first.
 | [x] | Allowlist helpers | `src/lib/vocabulary/vocabularyHelpers.ts` |
 | [x] | Fallback board exists and is tested | `src/lib/board/createFallbackBoard.ts` |
 | [x] | Static demo boards | `src/lib/board/demoBoards.ts` |
-| [x] | Smoke test over required cases | `npm run smoke` — 104 checks |
+| [x] | Smoke test over required cases | `npm run smoke` — 122 checks |
 
 ---
 
@@ -163,7 +163,7 @@ generation is ever added, the seam is the numbered gap in
 
 ---
 
-## Phase 5 — Demo mode
+## Phase 5 — Demo mode ✅
 
 | | Item | Detail |
 |---|---|---|
@@ -171,7 +171,10 @@ generation is ever added, the seam is the numbered gap in
 | [x] | Breakfast / feelings / cups boards | built |
 | [x] | Uncertainty → fallback | built |
 | [x] | Wire demo matcher into the API route | short-circuit before any model call |
-| [ ] | "Demo Mode" indicator in dev settings only | not in the pitch flow |
+| [x] | "Demo Mode" indicator in dev settings only | `/dev` — unstyled, not child-facing |
+| [x] | Uncertainty prompt is deterministic in demo mode | was falling through to the classifier |
+| [x] | `DEMO_PROMPTS` single source for chips + matcher | a chip cannot drift out of sync with its board |
+| [x] | Matching tolerates speech-recognition variation | without hijacking unscripted questions |
 
 ---
 
