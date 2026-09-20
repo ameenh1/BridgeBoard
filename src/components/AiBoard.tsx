@@ -69,11 +69,6 @@ export function AiBoard({
           {showPhrase ? <small>{choice.spokenPhrase}</small> : null}
         </span>
         <VisualAttribution visual={choice.visual} />
-        {choice.origin === "dynamic" ? (
-          <span className="origin-badge">
-            <Sparkles aria-hidden="true" size={13} /> New
-          </span>
-        ) : null}
       </button>
     );
   }

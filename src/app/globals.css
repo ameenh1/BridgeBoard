@@ -1095,8 +1095,14 @@ body {
 
 .ai-capture-heading p {
   color: var(--muted);
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   margin: 4px 0 12px;
+}
+
+.ai-capture .eyebrow {
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .ai-capture-controls {
@@ -1151,11 +1157,13 @@ body {
 }
 
 .ai-listen-button strong {
-  font-size: 22px;
+  font-size: 25px;
+  font-weight: 800;
 }
 
 .ai-listen-button small {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   opacity: 0.88;
 }
 
@@ -1172,10 +1180,14 @@ body {
 }
 
 .question-form--typed .ask-button {
+  font-size: 18px;
+  font-weight: 800;
   min-height: 48px;
 }
 
 .ai-view .heard-question {
+  font-size: 20px;
+  font-weight: 700;
   margin-top: 10px;
 }
 
@@ -1198,7 +1210,8 @@ body {
   border-radius: 10px;
   flex: 1 1 260px;
   font: inherit;
-  font-size: 17px;
+  font-size: 19px;
+  font-weight: 600;
   min-height: 54px;
   padding: 0 14px;
 }
@@ -1369,7 +1382,8 @@ body {
 }
 
 .choice-card--quick .choice-copy strong {
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 800;
   text-transform: capitalize;
 }
 
@@ -1438,11 +1452,13 @@ body {
 }
 
 .choice-card--dense .choice-copy strong {
-  font-size: 16px;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .choice-card--dense .choice-copy small {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* Quick answers carry a mint tint instead of a section label. */
@@ -1517,22 +1533,6 @@ body {
 
 .visual-attribution a {
   color: inherit;
-}
-
-.origin-badge {
-  align-items: center;
-  background: var(--mint-tint);
-  border-radius: 999px;
-  color: var(--green-text);
-  display: inline-flex;
-  font-size: 11px;
-  font-weight: 800;
-  gap: 4px;
-  left: 10px;
-  padding: 3px 9px;
-  position: absolute;
-  top: 10px;
-  text-transform: uppercase;
 }
 
 .empty-board {
