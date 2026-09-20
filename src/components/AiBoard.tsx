@@ -109,6 +109,7 @@ export function AiBoard({
           <span className="eyebrow">Ask a question</span>
           <p>Tap the microphone to listen, or type a question below.</p>
         </div>
+        <div className="ai-capture-controls">
         <button
           type="button"
           className={`ai-listen-button${listening ? " listening" : ""}`}
@@ -119,7 +120,7 @@ export function AiBoard({
           title={!online ? "Needs a network connection" : listening ? "Stop listening" : "Start listening"}
         >
           <span className="ai-listen-icon" aria-hidden="true">
-            {listening ? <MicOff size={46} /> : <Mic size={46} />}
+            {listening ? <MicOff size={38} /> : <Mic size={38} />}
           </span>
           <strong>{listening ? "Listening…" : "Tap to listen"}</strong>
           <small>{listening ? "Tap to stop" : "Use the microphone to ask"}</small>
@@ -141,6 +142,7 @@ export function AiBoard({
             </button>
           </div>
         </form>
+        </div>
       </section>
 
       {!online ? (
