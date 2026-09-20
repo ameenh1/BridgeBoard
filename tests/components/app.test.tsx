@@ -144,6 +144,8 @@ async function enterApp(user: ReturnType<typeof userEvent.setup>) {
   cloudState.user = { id: "u1", email: "caregiver@example.com" };
   cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha" };
   render(<BridgeBoardApp />);
+  await screen.findByRole("heading", { name: /who is communicating today/i });
+  await user.click(screen.getByRole("button", { name: /cha/i }));
   await screen.findByRole("navigation", { name: /main/i });
   return user;
 }
@@ -191,6 +193,8 @@ describe("login", () => {
     await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
     await user.type(screen.getByLabelText("Password"), "a good password");
     await user.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     expect(await screen.findByRole("navigation", { name: /main/i })).toBeDefined();
   });
 });
@@ -369,6 +373,8 @@ describe("settings and history", () => {
 
     cleanup();
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /cha/i }));
     await user.click(await screen.findByRole("button", { name: /open settings/i }));
@@ -384,6 +390,8 @@ describe("settings and history", () => {
 
     cleanup();
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /history/i }));
     expect(await screen.findByText("want")).toBeDefined();
@@ -394,6 +402,8 @@ describe("settings and history", () => {
     cloudState.user = { id: "u1", email: "caregiver@example.com" };
     cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha", historyEnabled: false };
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -408,6 +418,8 @@ describe("settings and history", () => {
     cloudState.user = { id: "u1", email: "caregiver@example.com" };
     cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha", quietMode: true };
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });

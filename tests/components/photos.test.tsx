@@ -46,8 +46,10 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-function enterApp() {
+async function enterApp() {
   render(<BridgeBoardApp />);
+  await screen.findByRole("heading", { name: /who is communicating today/i });
+  await screen.getByRole("button", { name: /cha/i }).click();
 }
 
 describe("personal photos on the board", () => {
@@ -55,7 +57,7 @@ describe("personal photos on the board", () => {
     // need_water ships with bundled artwork, so this proves the photo wins
     // over a real curated image rather than merely filling an empty slot.
     savePersonalPhoto("need_water", PHOTO);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     const needs = screen.getByRole("region", { name: "Needs" });
@@ -67,7 +69,7 @@ describe("personal photos on the board", () => {
   });
 
   it("shows the bundled drawing when there is no photo", async () => {
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     const needs = screen.getByRole("region", { name: "Needs" });
@@ -81,7 +83,7 @@ describe("personal photos on the board", () => {
   it("is reachable from the caregiver screen and reports the count", async () => {
     const user = userEvent.setup();
     savePersonalPhoto("need_water", PHOTO);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /cha/i }));
@@ -93,7 +95,7 @@ describe("personal photos on the board", () => {
 
   it("says plainly that photos never leave the device", async () => {
     const user = userEvent.setup();
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /cha/i }));
@@ -105,7 +107,7 @@ describe("personal photos on the board", () => {
   it("removing a photo restores the drawing", async () => {
     const user = userEvent.setup();
     savePersonalPhoto("need_water", PHOTO);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /cha/i }));
@@ -125,7 +127,7 @@ describe("personal photos on the board", () => {
     const user = userEvent.setup();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     savePersonalPhoto("need_water", PHOTO);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /cha/i }));

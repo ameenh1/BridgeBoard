@@ -131,7 +131,7 @@ function BridgeBoardShell() {
     setHistory(cloudHistory);
     clearHistory();
     for (const entry of cloudHistory) appendHistory(entry, true);
-    setStage(cloudProfile ? "app" : "setup");
+    setStage(cloudProfile ? "profile" : "setup");
     setView("board");
   }, []);
 
