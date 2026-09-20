@@ -63,7 +63,6 @@ function makeInitialSession(): BoardSessionState {
     partialTranscript: "",
   };
 }
-
 const subscribeNever = () => () => {};
 
 /**
@@ -79,7 +78,6 @@ function useHydrated(): boolean {
     () => false,
   );
 }
-
 export function BridgeBoardApp() {
   if (!useHydrated()) return <main className="boot-screen" aria-busy="true" />;
   return <BridgeBoardShell />;
@@ -101,7 +99,6 @@ function BridgeBoardShell() {
   const [photos, setPhotos] = useState<PersonalPhoto[]>(() => loadPersonalPhotos());
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
-  const [microphoneError, setMicrophoneError] = useState<string>();
   const [microphoneNotice, setMicrophoneNotice] = useState<string>();
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
@@ -238,12 +235,10 @@ function BridgeBoardShell() {
   }, []);
 
   const startListening = useCallback(async () => {
-    setMicrophoneError(undefined);
     setMicrophoneNotice(undefined);
     const controller = createRealtimeTranscriptionController({
       noiseGateDb: profileRef.current.noiseGateDb,
       onStateChange: setRealtimeState,
-      onError: (error) => setMicrophoneError(microphoneMessage(error.code)),
       onProcessingNotice: setMicrophoneNotice,
       onPartialTranscript: ({ transcript }) =>
         boardController.current?.acceptPartialTranscript(transcript),
@@ -345,8 +340,7 @@ function BridgeBoardShell() {
   const hasAiNotifications =
     view === "ai" &&
     Boolean(
-      microphoneError ||
-        !online ||
+      !online ||
         personalizedSession.lastError ||
         microphoneNotice,
     );
@@ -456,7 +450,6 @@ function BridgeBoardShell() {
       {view === "ai" ? (
         <AiNotificationDock
           online={online}
-          microphoneError={microphoneError}
           microphoneNotice={microphoneNotice}
           boardError={personalizedSession.lastError}
         />
@@ -484,15 +477,4 @@ function NavButton({
       {children}
     </button>
   );
-}
-
-function microphoneMessage(code: string): string {
-  switch (code) {
-    case "permission_denied":
-      return "Microphone access was blocked.";
-    case "not_supported":
-      return "This browser cannot use the microphone.";
-    default:
-      return "The microphone could not connect.";
-  }
 }

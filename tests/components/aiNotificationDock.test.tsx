@@ -6,17 +6,10 @@ import { AiNotificationDock } from "@/components/AiNotificationDock";
 describe("AiNotificationDock", () => {
   afterEach(cleanup);
 
-  it("renders the complete microphone fallback as an alert", () => {
-    render(
-      <AiNotificationDock
-        online
-        microphoneError="The microphone could not connect."
-      />,
-    );
+  it("does not render microphone connection failures", () => {
+    render(<AiNotificationDock online />);
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "The microphone could not connect. You can still type the message above.",
-    );
+    expect(screen.queryByText(/microphone could not connect/i)).not.toBeInTheDocument();
   });
 
   it("uses status semantics for informational notices", () => {
@@ -34,7 +27,6 @@ describe("AiNotificationDock", () => {
     render(
       <AiNotificationDock
         online={false}
-        microphoneError="The microphone could not connect."
         boardError="asset_stream"
         microphoneNotice="Finishing the transcript…"
       />,
@@ -45,7 +37,6 @@ describe("AiNotificationDock", () => {
       .map((notice) => notice.textContent?.replace(/\s+/g, " ").trim());
 
     expect(messages).toEqual([
-      "The microphone could not connect. You can still type the message above.",
       "No connection. The AI needs a network — Default AAC still works and still speaks.",
       "Some pictures could not load. Every choice still works.",
       "Finishing the transcript…",

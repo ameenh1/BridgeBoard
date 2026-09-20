@@ -36,6 +36,7 @@
 - OpenAI SDK 7.19.0 does not yet type the documented web-search image fields. Keep the compatibility cast isolated to the exact `web_search` tool object and parse raw `web_search_call.results` rather than model-authored URLs.
 - This package compiles `tsx` scripts as CommonJS, so top-level `await` fails during smoke checks. Put asynchronous script work in an explicit `main()` entrypoint.
 - PowerShell `Invoke-WebRequest` can print streamed response bytes as a huge decimal sequence. Probe NDJSON with Node `fetch`, decode by line, and log only event metadata so embedded image data never reaches terminal output.
+- PowerShell `git rev-list --left-right --count` output is tab-delimited; split on whitespace before comparing ahead/behind counts.
 - A production `npm audit` briefly returned registry HTTP 503. Retry the unchanged command before treating a registry outage as an audit failure; the retry reported zero vulnerabilities.
 - Supabase CLI migration commands create `supabase/.temp/cli-latest`. Keep `/supabase/.temp/` ignored so runtime state is never committed with migrations.
 - The AI six-item cap was enforced independently by profile validation, visual requests, signed grants, API validation, and resolver concurrency; when raising capacity, update the `2|4|6|8` contract and `AI_MAX_VISUAL_ASSETS` ceiling together.

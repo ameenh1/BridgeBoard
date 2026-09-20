@@ -4,30 +4,19 @@ import { AlertCircle } from "./icons";
 
 export function AiNotificationDock({
   online,
-  microphoneError,
   microphoneNotice,
   boardError,
 }: {
   online: boolean;
-  microphoneError?: string;
   microphoneNotice?: string;
   boardError?: BoardSessionState["lastError"];
 }) {
-  const hasNotifications = Boolean(
-    microphoneError || !online || boardError || microphoneNotice,
-  );
+  const hasNotifications = Boolean(!online || boardError || microphoneNotice);
   if (!hasNotifications) return null;
 
   return (
     <aside className="ai-notification-dock" aria-label="AI AAC notifications">
       <div className="ai-notification-stack">
-        {microphoneError ? (
-          <p className="ai-toast ai-toast--error" role="alert">
-            <AlertCircle aria-hidden="true" size={18} />
-            <span>{microphoneError} You can still type the message above.</span>
-          </p>
-        ) : null}
-
         {!online ? (
           <p className="ai-toast ai-toast--status" role="status">
             <WifiOff aria-hidden="true" size={18} />

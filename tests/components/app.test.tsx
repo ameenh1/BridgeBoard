@@ -467,7 +467,9 @@ describe("microphone", () => {
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
     await user.click(screen.getByRole("button", { name: /listen/i }));
-    expect(await screen.findByRole("alert")).toBeDefined();
+    expect(
+      screen.queryByRole("complementary", { name: "AI AAC notifications" }),
+    ).toBeNull();
 
     // The question box still works.
     await user.type(screen.getByRole("textbox", { name: /caregiver message/i }), "Waffles?");
