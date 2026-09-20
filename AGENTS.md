@@ -12,10 +12,12 @@
 
 ## AI integration
 
+- When renaming the caregiver input to “message,” broad accessible-name regexes can match both the textbox and microphone button; target the textbox role in UI tests. Statement replies also need their own validator so short first-person responses remain valid while instructions and medical advice are rejected.
 - Keep browser code limited to contracts, Realtime control, and board/cache events. OpenAI and Supabase admin clients stay server-only.
 - A board is usable before image work starts. Never clear the committed board or disable choices because classification, search, generation, or caching is pending.
 - Apply image events by stable `assetKey`. A ready image never regresses to pending or unavailable, and unrelated choices never change.
 - OpenAI web search results are untrusted input. Validate HTTPS and every redirect, allowed hosts, byte limits, MIME and magic bytes, then decode and re-encode before display or caching.
+- Paid web image search is opt-in: require `AI_ASSET_SEARCH_ENABLED=true`; keep local and example defaults false so an unset flag cannot trigger searches.
 - Use the unified Realtime WebRTC endpoint from the server route. The browser may send SDP but must never receive the standard OpenAI API key.
 
 ## Current integration note
@@ -32,6 +34,7 @@
 - PowerShell `Invoke-WebRequest` can print streamed response bytes as a huge decimal sequence. Probe NDJSON with Node `fetch`, decode by line, and log only event metadata so embedded image data never reaches terminal output.
 - A production `npm audit` briefly returned registry HTTP 503. Retry the unchanged command before treating a registry outage as an audit failure; the retry reported zero vulnerabilities.
 - Supabase CLI migration commands create `supabase/.temp/cli-latest`. Keep `/supabase/.temp/` ignored so runtime state is never committed with migrations.
+- The AI six-item cap was enforced independently by profile validation, visual requests, signed grants, API validation, and resolver concurrency; when raising capacity, update the `2|4|6|8` contract and `AI_MAX_VISUAL_ASSETS` ceiling together.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -109,12 +109,13 @@ export function SetupScreen({
             <select
               value={String(draft.maxChoices)}
               onChange={(event) =>
-                patch({ maxChoices: Number(event.target.value) as 2 | 4 | 6 })
+                patch({ maxChoices: Number(event.target.value) as 2 | 4 | 6 | 8 })
               }
             >
               <option value="2">2 choices</option>
               <option value="4">4 choices</option>
               <option value="6">6 choices</option>
+              <option value="8">8 choices</option>
             </select>
           </label>
 

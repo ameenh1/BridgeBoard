@@ -19,6 +19,12 @@ describe("settings", () => {
   it("returns defaults when nothing is stored", () => {
     expect(loadSettings()).toEqual(DEFAULT_PROFILE);
     expect(hasStoredSettings()).toBe(false);
+    expect(DEFAULT_PROFILE.maxChoices).toBe(8);
+  });
+
+  it("round-trips the eight-choice setting", () => {
+    saveSettings({ ...DEFAULT_PROFILE, maxChoices: 8 });
+    expect(loadSettings().maxChoices).toBe(8);
   });
 
   it("round-trips the new fields", () => {

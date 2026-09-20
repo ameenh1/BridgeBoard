@@ -11,7 +11,7 @@ export type ChildProfile = {
   displayName: string;
 
   /** Upper bound on how many choices a board may show. */
-  maxChoices: 2 | 4 | 6;
+  maxChoices: 2 | 4 | 6 | 8;
 
   visuals: "photos_first" | "mixed" | "icons_first";
 
@@ -34,7 +34,7 @@ export const MAX_SPEECH_RATE = 1.3;
 export const DEFAULT_PROFILE: ChildProfile = {
   id: "default-profile",
   displayName: "",
-  maxChoices: 4,
+  maxChoices: 8,
   visuals: "photos_first",
   speechEnabled: true,
   quietMode: false,

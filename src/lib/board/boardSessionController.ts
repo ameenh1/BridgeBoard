@@ -43,7 +43,7 @@ export type BoardSessionOptions = {
   continuationWindowMs?: number;
   profile?: {
     id?: string;
-    maxChoices?: 2 | 4 | 6;
+    maxChoices?: 2 | 4 | 6 | 8;
     visuals?: "photos_first" | "mixed" | "icons_first";
   };
   onStateChange?: (state: BoardSessionState) => void;

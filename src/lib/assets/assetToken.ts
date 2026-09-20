@@ -3,6 +3,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import type { AssetStreamDescriptor } from "@/types/board";
 import type { AssetStreamGrant, VisualAssetRequest } from "./types";
+import { MAX_AI_VISUAL_ASSETS } from "./visualRequests";
 
 const RequestSchema = z.object({
   boardId: z.string().uuid(),
@@ -20,7 +21,7 @@ const GrantSchema = z.object({
   version: z.literal(1),
   boardId: z.string().uuid(),
   expiresAt: z.number().int().positive(),
-  requests: z.array(RequestSchema).max(6),
+  requests: z.array(RequestSchema).max(MAX_AI_VISUAL_ASSETS),
 });
 
 let developmentSecret: string | undefined;

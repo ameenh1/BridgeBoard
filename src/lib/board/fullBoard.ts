@@ -25,7 +25,7 @@ const CATEGORY_GROUPS: { key: string; label: string; categories: string[] }[] = 
   { key: "core", label: "Core", categories: ["core"] },
   { key: "needs", label: "Needs", categories: ["needs", "bathroom", "body_needs"] },
   { key: "feelings", label: "Feelings", categories: ["feelings"] },
-  { key: "food", label: "Food", categories: ["food", "drink"] },
+  { key: "food", label: "Food", categories: ["food", "food_places", "drink"] },
   { key: "people", label: "People", categories: ["people"] },
   { key: "places", label: "Places", categories: ["places"] },
   { key: "activities", label: "Activities", categories: ["activities"] },

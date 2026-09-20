@@ -47,7 +47,7 @@ export type RenderableBoard = {
   boardId: string;
   title: string;
 
-  /** Echoed back so the UI can show what was heard. Optional by design. */
+  /** Echoed caregiver utterance so the UI can show what was heard. */
   questionText?: string;
 
   boardType: BoardType;

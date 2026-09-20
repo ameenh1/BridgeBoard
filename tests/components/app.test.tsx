@@ -256,10 +256,10 @@ describe("ai board", () => {
   async function askFirstQuestion(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
     await user.type(
-      screen.getByLabelText(/caregiver question/i),
+      screen.getByRole("textbox", { name: /caregiver message/i }),
       "Would you like waffles or dragon fruit?",
     );
-    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
   }
 
   it("shows an empty AI row above the default answers before the first question", async () => {
@@ -267,6 +267,7 @@ describe("ai board", () => {
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
     expect(screen.queryByText(/waiting for a question/i)).toBeNull();
+    expect(await screen.findByText(/its responses land here/i)).toBeDefined();
     for (const label of ["Yes", "No", "more", "all done"]) {
       expect(screen.getByText(label, { selector: "strong" })).toBeDefined();
     }
@@ -315,12 +316,12 @@ describe("ai board", () => {
 
     // Select waffles, then ask the follow-up.
     await user.click(screen.getByRole("button", { name: /waffles/i }));
-    await user.clear(screen.getByLabelText(/caregiver question/i));
+    await user.clear(screen.getByRole("textbox", { name: /caregiver message/i }));
     await user.type(
-      screen.getByLabelText(/caregiver question/i),
+      screen.getByRole("textbox", { name: /caregiver message/i }),
       "Would you like waffles or pancakes?",
     );
-    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
 
     // Mid-classification: both old choices are still on screen and clickable,
     // the selection is still held while the next board is generated.
@@ -362,9 +363,9 @@ describe("ai board", () => {
     await askFirstQuestion(user);
     await screen.findByRole("button", { name: /waffles/i });
 
-    await user.clear(screen.getByLabelText(/caregiver question/i));
-    await user.type(screen.getByLabelText(/caregiver question/i), "Something unanswerable?");
-    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await user.clear(screen.getByRole("textbox", { name: /caregiver message/i }));
+    await user.type(screen.getByRole("textbox", { name: /caregiver message/i }), "Something unanswerable?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
 
     await screen.findByText(/previous choices are still available/i);
     expect(screen.getByRole("button", { name: /waffles/i })).not.toBeDisabled();
@@ -382,6 +383,19 @@ describe("ai board", () => {
 });
 
 describe("settings and history", () => {
+  it("offers eight choices without removing the lower settings", async () => {
+    const user = userEvent.setup();
+    await enterApp(user);
+
+    await user.click(screen.getByRole("button", { name: /cha/i }));
+    await user.click(await screen.findByRole("button", { name: /open settings/i }));
+
+    const choices = await screen.findByLabelText(/choices per board/i);
+    expect(within(choices).getByRole("option", { name: "8" })).toBeDefined();
+    await user.selectOptions(choices, "8");
+    expect(choices).toHaveValue("8");
+  });
+
   it("persists settings across a remount", async () => {
     const user = userEvent.setup();
     await enterApp(user);
@@ -429,8 +443,8 @@ describe("microphone", () => {
     expect(await screen.findByRole("alert")).toBeDefined();
 
     // The question box still works.
-    await user.type(screen.getByLabelText(/caregiver question/i), "Waffles?");
-    await user.click(screen.getByRole("button", { name: /^ask$/i }));
+    await user.type(screen.getByRole("textbox", { name: /caregiver message/i }), "Waffles?");
+    await user.click(screen.getByRole("button", { name: /^send$/i }));
     expect(await screen.findByRole("button", { name: /waffles/i })).toBeDefined();
   });
 
@@ -439,9 +453,9 @@ describe("microphone", () => {
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
     // No listening indicator takes a row until Listen is actually pressed.
-    expect(screen.queryByText(/listening for a complete question/i)).toBeNull();
+    expect(screen.queryByText(/listening for a complete message/i)).toBeNull();
     expect(
-      screen.getByRole("button", { name: /listen for a spoken question/i }),
+      screen.getByRole("button", { name: /listen for a caregiver message/i }),
     ).toBeDefined();
   });
 });

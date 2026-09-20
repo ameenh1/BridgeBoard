@@ -37,7 +37,8 @@ export function AiBoard({
   const [question, setQuestion] = useState("");
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
-  // Row 1: four slots for this question's AI image tiles. Row 2: the default answers.
+  // The gallery holds up to eight AI suggestions. Quick answers remain in a
+  // separate row and never count against that gallery.
   const aiChoices = (board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? []).slice(0, 8);
   const quickChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
 
@@ -91,51 +92,53 @@ export function AiBoard({
 
   return (
     <section className="mode-view ai-view">
-      <section className="ai-capture" aria-label="Ask a question">
+      <section className="ai-capture" aria-label="Caregiver message">
         <div className="ai-capture-controls">
         <button
           type="button"
-          className={`ai-listen-button${listening ? " listening" : ""}`}
+          className={"ai-listen-button" + (listening ? " listening" : "")}
           onClick={onToggleListening}
           aria-pressed={listening}
           disabled={!online}
-          aria-label={listening ? "Stop listening" : "Listen for a spoken question"}
+          aria-label={listening ? "Stop listening" : "Listen for a caregiver message"}
           title={!online ? "Needs a network connection" : listening ? "Stop listening" : "Start listening"}
         >
           <span className="ai-listen-icon" aria-hidden="true">
             {listening ? <MicOff size={48} /> : <Mic size={48} />}
           </span>
-            <strong>{listening ? "Listening…" : "Ask a question"}</strong>
+            <strong>{listening ? "Listening…" : "Send a message"}</strong>
             <small>{listening ? "Tap to stop" : "Tap to listen"}</small>
         </button>
         <div className="ai-question-entry">
         <form className="question-form question-form--typed" onSubmit={handleSubmit}>
-          <label htmlFor="caregiver-question" className="sr-only">Caregiver question</label>
+          <label htmlFor="caregiver-question" className="sr-only">Caregiver message</label>
           <div className="question-controls">
             <input
               id="caregiver-question"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Type a question instead…"
+              placeholder="Type a message… Try: Dinner is ready."
               autoComplete="off"
               maxLength={300}
             />
             <button className="primary-button ask-button" type="submit" disabled={!question.trim() || !online}>
               <Send aria-hidden="true" size={18} />
-              <span>Ask</span>
+              <span>Send</span>
             </button>
           </div>
         </form>
         <div className="ai-question-readout" aria-live="polite">
-          <span className="ai-readout-label">Heard question</span>
+          <span className="ai-readout-label">Heard message</span>
           <p>
-            {session.partialTranscript
-              ? `“${session.partialTranscript}”`
-              : board?.questionText
-                ? `“${board.questionText}”`
-                : listening
-                  ? "Listening for a complete question…"
-                  : "Your spoken question will appear here."}
+            {session.partialTranscript ? (
+              <>“{session.partialTranscript}”</>
+            ) : board?.questionText ? (
+              <>“{board.questionText}”</>
+            ) : listening ? (
+              "Listening for a complete message…"
+            ) : (
+              "Your caregiver message will appear here."
+            )}
           </p>
         </div>
         </div>
@@ -156,7 +159,7 @@ export function AiBoard({
       {microphoneError ? (
         <p className="inline-alert" role="alert">
           <AlertCircle aria-hidden="true" size={18} /> {microphoneError} You can still
-          type the question above.
+          type the message above.
         </p>
       ) : null}
 
@@ -164,13 +167,13 @@ export function AiBoard({
         <p className="board-notice" role="status">
           <AlertCircle aria-hidden="true" size={18} />
           {session.lastError === "classification"
-            ? "That question could not be organized. Your previous choices are still available."
+            ? "That message could not be organized. Your previous choices are still available."
             : "Some pictures could not load. Every choice still works."}
         </p>
       ) : null}
 
-      {/* Two fixed rows. The caregiver's generated choices fill the four slots
-          above the always-available default answers. */}
+      {/* The AI gallery can wrap to two rows on a landscape tablet. Quick
+          answers stay separate and a refresh never clears either area. */}
       {board ? (
         <div className="ai-choice-area">
           <div className="ai-generated-row">
@@ -196,6 +199,9 @@ export function AiBoard({
               ) : null}
             </div>
           </div>
+          {aiChoices.length === 0 ? (
+            <p className="ai-row-hint">Send a message above — its responses land here.</p>
+          ) : null}
           <div className="choice-grid choice-grid--quick" aria-label="Quick answers">
             {quickChoices.map((choice) => renderChoice(choice))}
           </div>
@@ -205,7 +211,7 @@ export function AiBoard({
           <span className="empty-icon" aria-hidden="true">
             <Volume2 size={40} />
           </span>
-          <h3>No question yet</h3>
+          <h3>No message yet</h3>
           <p>
             Text and symbols appear first, then each picture fills in on its own
             tile. Nothing waits for a picture.

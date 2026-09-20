@@ -1350,6 +1350,7 @@ body {
   min-height: 0;
 }
 
+/* The gallery keeps up to eight generated choices above the quick answers. */
 .choice-grid--ai,
 .choice-grid--quick {
   gap: 10px;

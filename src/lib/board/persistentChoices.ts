@@ -47,13 +47,13 @@ export function withPersistentChoices(choices: RenderableChoice[]): RenderableCh
 }
 
 /**
- * The board the AI view shows before the first question: four usable,
- * speakable tiles with bundled pictures — never an empty "No question yet".
+ * The board the AI view shows before the first message: four usable,
+ * speakable tiles with bundled pictures — never an empty "No message yet".
  */
 export function createWelcomeBoard(): RenderableBoard {
   return {
     boardId: crypto.randomUUID(),
-    title: "Start here — ask a question",
+    title: "Start here — send a message",
     boardType: "choice",
     choices: getPersistentAiChoices(),
     actions: ["help", "repeat", "something_else", "need_more_time", "full_board"],

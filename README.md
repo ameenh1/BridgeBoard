@@ -2,10 +2,11 @@
 
 Conversation in. Choice out.
 
-BridgeBoard is a context-aware AAC app. A caregiver asks a question out loud or
-types it; BridgeBoard offers a small set of relevant, approved words with
-pictures. **The AI never decides what someone means** — it proposes vocabulary
-ids, and the app owns every label, every spoken phrase and every picture.
+BridgeBoard is a context-aware AAC app. A caregiver asks a question or makes a
+statement out loud or by typing; BridgeBoard offers a small set of relevant,
+approved words with pictures. **The AI never decides what someone means** — it
+proposes vocabulary ids or short response concepts, and the app owns every
+label, every spoken phrase and every picture.
 
 One Next.js application, one `npm run dev`. There is no separate frontend.
 
@@ -48,7 +49,7 @@ caregiver speech ─► /api/realtime/session ─► transcript
                                               │
                                               ▼
                         /api/classify-question ─► Zod ─► confidence
-                        ─► allowlist ─► maxChoices ─► trusted catalog lookup
+                        ─► allowlist/topic filter ─► maxChoices ─► trusted choices
                                               │
                                               ▼
                     RenderableBoard (text + phrase + icon, immediately usable)
@@ -71,11 +72,14 @@ later and upgrade one tile at a time; nothing ever waits on an image.
 
 ### Where words come from
 
-Every label and spoken phrase lives in
+Catalog labels and spoken phrases live in
 `src/lib/vocabulary/approvedVocabulary.ts`. The board layout references ids and
-never restates a word, so there is exactly one place a word can change. The
-model is shown `{id, label, category}` only — it never sees or rewrites a
-`spokenPhrase`.
+never restates a catalog word, so there is exactly one place a catalog word can
+change. For a clear open-ended question, the model may also propose short
+answer concepts. For a caregiver statement, it may propose up to four short
+response concepts. The application validates those concepts, creates the
+spoken phrase locally, and never treats a suggestion as the communicator's
+answer.
 
 ## Routes
 
@@ -117,6 +121,7 @@ checks, a production build, and a production dependency audit.
 
 It will not choose an answer, claim to know what someone wants or feels, speak
 without being asked, diagnose, advise medically, remove the manual board, or
-invent an option when it is unsure. Communication has to survive failure of
+invent unsupported options when it is unsure. Clear open-ended questions may
+surface validated suggestions, but communication still has to survive failure of
 the AI, the network, images, the microphone, credentials and storage — so when
 any of those break, the board falls back to manual instead of guessing.

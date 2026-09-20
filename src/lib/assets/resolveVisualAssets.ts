@@ -1,5 +1,6 @@
 import "server-only";
 import { processAssetCache } from "./cache";
+import { MAX_AI_VISUAL_ASSETS } from "./visualRequests";
 import type {
   AssetContentPolicy,
   AssetProviders,
@@ -233,6 +234,9 @@ export async function resolveAssetBatch(
       if (!options.signal.aborted) options.onResolution(resolution);
     }
   };
-  const count = Math.max(1, Math.min(options.concurrency ?? 3, 6, requests.length));
+  const count = Math.max(
+    1,
+    Math.min(options.concurrency ?? 3, MAX_AI_VISUAL_ASSETS, requests.length),
+  );
   await Promise.all(Array.from({ length: count }, worker));
 }
