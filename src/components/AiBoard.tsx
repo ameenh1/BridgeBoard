@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, LayoutGrid, Mic, MicOff, RefreshCw, Send, Sparkles, Volume2 } from "lucide-react";
+import {
+  Check, LayoutGrid, Mic, MicOff, RefreshCw, Send, Sparkles, Volume2, WifiOff,
+} from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
@@ -23,6 +25,7 @@ export function AiBoard({
   session,
   profile,
   realtimeState,
+  online,
   microphoneError,
   onSubmitQuestion,
   onToggleListening,
@@ -32,6 +35,8 @@ export function AiBoard({
   session: BoardSessionState;
   profile: ChildProfile;
   realtimeState: RealtimeTranscriptionState;
+  /** False means the AI side cannot work, whatever else is configured. */
+  online: boolean;
   microphoneError?: string;
   onSubmitQuestion: (questionText: string) => void;
   onToggleListening: () => void;
@@ -138,17 +143,28 @@ export function AiBoard({
             className={`listen-button listen-button--icon${listening ? " listening" : ""}`}
             onClick={onToggleListening}
             aria-pressed={listening}
+            disabled={!online}
             aria-label={listening ? "Stop listening" : "Listen for a spoken question"}
-            title={listening ? "Stop" : "Listen"}
+            title={!online ? "Needs a network connection" : listening ? "Stop" : "Listen"}
           >
             {listening ? <MicOff aria-hidden="true" size={20} /> : <Mic aria-hidden="true" size={20} />}
           </button>
-          <button className="primary-button ask-button" type="submit" disabled={!question.trim()}>
+          <button className="primary-button ask-button" type="submit" disabled={!question.trim() || !online}>
             <Send aria-hidden="true" size={18} />
             <span>Ask</span>
           </button>
         </div>
       </form>
+
+      {!online ? (
+        <p className="offline-notice" role="status">
+          <WifiOff aria-hidden="true" size={18} />
+          <span>
+            No connection. The AI needs a network — <strong>Default AAC</strong>{" "}
+            still works and still speaks.
+          </span>
+        </p>
+      ) : null}
 
       {/* Only takes a row while actually listening — idle shows nothing. */}
       {session.partialTranscript || listening ? (

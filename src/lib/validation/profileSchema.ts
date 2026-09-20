@@ -20,7 +20,6 @@ export const ChildProfileSchema = z.object({
   speechEnabled: z.boolean(),
   quietMode: z.boolean(),
   textLabelsEnabled: z.boolean(),
-  historyEnabled: z.boolean(),
   buttonSize: z.enum(["standard", "large"]).default("large"),
   speechRate: z.number().min(MIN_SPEECH_RATE).max(MAX_SPEECH_RATE).default(0.9),
   voiceURI: z.string().max(300).optional(),

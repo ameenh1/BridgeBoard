@@ -1,6 +1,6 @@
 "use client";
 
-import { MicOff, ShieldCheck, Sliders } from "lucide-react";
+import { Camera, MicOff, ShieldCheck, Sliders } from "lucide-react";
 
 /**
  * Caregiver overview.
@@ -10,7 +10,15 @@ import { MicOff, ShieldCheck, Sliders } from "lucide-react";
  * screen, the privacy card now states the actual behaviour and the vocabulary
  * card says plainly what is and is not possible today.
  */
-export function CaregiverScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function CaregiverScreen({
+  onOpenSettings,
+  onOpenPhotos,
+  photoCount,
+}: {
+  onOpenSettings: () => void;
+  onOpenPhotos: () => void;
+  photoCount: number;
+}) {
   return (
     <section className="simple-view">
       <div className="view-heading">
@@ -49,12 +57,27 @@ export function CaregiverScreen({ onOpenSettings }: { onOpenSettings: () => void
 
         <article className="settings-card">
           <span className="card-icon" aria-hidden="true">
+            <Camera size={28} />
+          </span>
+          <h2>Personal photos</h2>
+          <p>
+            Use a photo of the real thing instead of a drawing — their cup,
+            their bag, their dog. Photos stay on this device and are never
+            uploaded or sent to the AI.
+          </p>
+          <button className="secondary-button" type="button" onClick={onOpenPhotos}>
+            {photoCount > 0 ? `Manage ${photoCount} photos` : "Add photos"}
+          </button>
+        </article>
+
+        <article className="settings-card">
+          <span className="card-icon" aria-hidden="true">
             <Sliders size={28} />
           </span>
           <h2>Display and speech</h2>
           <p>
-            Button size, labels, speaking speed, voice, quiet mode and history
-            are all adjustable, and are stored on this device only.
+            Button size, labels, speaking speed, voice and quiet mode are all
+            adjustable and saved to your account when you are signed in.
           </p>
           <button className="secondary-button" type="button" onClick={onOpenSettings}>
             Open settings

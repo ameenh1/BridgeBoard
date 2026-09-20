@@ -15,11 +15,13 @@
     "test:watch": "vitest",
     "smoke": "tsx scripts/smoke.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run images:check && npm run smoke && npm run build && npm audit --omit=dev",
-    "prebuild": "tsx scripts/generateImageManifest.ts",
+    "prebuild": "tsx scripts/generateImageManifest.ts && tsx scripts/generateServiceWorker.ts",
     "images:manifest": "tsx scripts/generateImageManifest.ts",
     "images:check": "tsx scripts/checkImages.ts",
     "supabase:setup-assets": "tsx scripts/setupSupabaseAssets.ts",
-    "artwork:import": "tsx scripts/importFrontendArtwork.ts"
+    "artwork:import": "tsx scripts/importFrontendArtwork.ts",
+    "cache:warm": "tsx scripts/warmCache.ts",
+    "sw:generate": "tsx scripts/generateServiceWorker.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

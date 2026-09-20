@@ -38,7 +38,7 @@ export function SettingsScreen({
         <div>
           <span className="eyebrow">Caregiver</span>
           <h1>Settings</h1>
-          <p>Saved on this device only.</p>
+          <p>Saved to your account when you are signed in.</p>
         </div>
       </div>
 
@@ -46,7 +46,7 @@ export function SettingsScreen({
         <label>
           <span>
             <strong>Preferred name</strong>
-            <small>Shown on this device</small>
+            <small>Shown on your communication board</small>
           </span>
           <input
             value={profile.displayName}
@@ -174,17 +174,6 @@ export function SettingsScreen({
           </select>
         </label>
 
-        <label className="toggle-row">
-          <span>
-            <strong>Keep a local history</strong>
-            <small>Stored on this device only</small>
-          </span>
-          <input
-            type="checkbox"
-            checked={profile.historyEnabled}
-            onChange={(event) => onChange({ historyEnabled: event.target.checked })}
-          />
-        </label>
       </div>
 
       <button className="danger-button" type="button" onClick={onResetProfile}>

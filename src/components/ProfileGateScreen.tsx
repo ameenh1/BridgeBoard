@@ -21,10 +21,10 @@ function LeafDecor() {
 }
 
 /**
- * Shown when a profile already exists on this device.
+ * Profile picker shown after the caregiver account/session is entered.
  *
- * One local profile is supported. "Set up a new local profile" resets the
- * setup form rather than pretending a roster of cloud profiles exists.
+ * The current account stores one profile. This screen is shaped like a
+ * profile picker so additional child profiles can be added later.
  */
 export function ProfileGateScreen({
   profile,
@@ -35,17 +35,17 @@ export function ProfileGateScreen({
   onContinue: () => void;
   onSetUpNew: () => void;
 }) {
-  const name = profile.displayName.trim() || "this device";
-  const initial = (profile.displayName.trim()[0] ?? "B").toUpperCase();
+  const name = profile.displayName.trim() || "Your first profile";
+  const initial = (profile.displayName.trim()[0] ?? "+").toUpperCase();
 
   return (
     <main className="center-page profile-page">
       <LeafDecor />
       <section className="selector-card">
         <span className="eyebrow">Your communication board</span>
-        <h1>Welcome back</h1>
+        <h1>Who is communicating today?</h1>
         <p className="muted-copy">
-          This board is saved on this device. Nothing is stored anywhere else.
+          Choose a profile to open their board, or create a new one for another child.
         </p>
 
         <div className="profile-grid">
@@ -53,14 +53,14 @@ export function ProfileGateScreen({
             <span className="avatar" aria-hidden="true">{initial}</span>
             <span>
               <strong>{name}</strong>
-              <small>Continue to the board</small>
+              <small>Open this profile&apos;s board</small>
             </span>
           </button>
           <button className="profile-card add-profile" type="button" onClick={onSetUpNew}>
             <span className="plus" aria-hidden="true">+</span>
             <span>
-              <strong>Set up a new local profile</strong>
-              <small>Replaces the settings saved here</small>
+              <strong>Add a profile</strong>
+              <small>Create a board for another child</small>
             </span>
           </button>
         </div>
@@ -69,7 +69,7 @@ export function ProfileGateScreen({
   );
 }
 
-/** First-run setup, and the form "set up a new local profile" returns to. */
+/** First-run setup, and the form used to create or update the account profile. */
 export function SetupScreen({
   initial,
   onFinish,
@@ -89,9 +89,9 @@ export function SetupScreen({
     <main className="center-page profile-page setup-page">
       <LeafDecor />
       <section className="setup-card">
-        <span className="eyebrow">A quick start</span>
-        <h1>Set up this board</h1>
-        <p className="muted-copy">You can change all of these later in Settings.</p>
+        <span className="eyebrow">Create a profile</span>
+        <h1>Set up this profile</h1>
+        <p className="muted-copy">Give this child a name and choose how their board should work.</p>
 
         <div className="setup-grid">
           <label>
@@ -99,7 +99,7 @@ export function SetupScreen({
             <input
               value={draft.displayName}
               maxLength={60}
-              placeholder="Name shown on this device"
+              placeholder="Child&apos;s name"
               onChange={(event) => patch({ displayName: event.target.value })}
             />
           </label>
@@ -164,17 +164,6 @@ export function SetupScreen({
             />
           </label>
 
-          <label className="toggle-row">
-            <span>
-              <strong>Keep a local history</strong>
-              <small>Stored on this device only</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.historyEnabled}
-              onChange={(event) => patch({ historyEnabled: event.target.checked })}
-            />
-          </label>
         </div>
 
         <div className="setup-actions">

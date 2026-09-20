@@ -11,30 +11,33 @@ import {
   type RealtimeTranscriptionController,
 } from "@/lib/speech/realtimeTranscription";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
-import { cancelSpeech, speak } from "@/lib/speech/speak";
-import {
-  appendHistory,
-  clearHistory,
-  loadHistory,
-  type CommunicationHistoryEntry,
-} from "@/lib/storage/history";
+import { cancelSpeech, speakNatural } from "@/lib/speech/speak";
 import {
   clearSettings,
-  hasStoredSettings,
   loadSettings,
   updateSettings,
 } from "@/lib/storage/settings";
-import { endLocalSession, hasLocalSession, startLocalSession } from "@/lib/storage/localSession";
-import { fetchSession, signOut } from "@/lib/auth/authClient";
-import type { AuthUser } from "@/types/auth";
+import {
+  getCurrentUser,
+  loadCloudProfile,
+  saveCloudProfile,
+  signOutCloud,
+} from "@/lib/storage/cloud";
+import {
+  clearPersonalPhotos,
+  loadPersonalPhotos,
+  personalPhotoMap,
+  type PersonalPhoto,
+} from "@/lib/storage/personalPhotos";
+import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
-import type { VocabularyItem } from "@/types/vocabulary";
 import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
-import { HistoryScreen } from "./HistoryScreen";
+import { PhotosScreen } from "./PhotosScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
@@ -42,11 +45,15 @@ import { ACTIONS } from "./icons";
 import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
-type View = "board" | "ai" | "history" | "caregiver" | "settings";
+type View = "board" | "ai" | "caregiver" | "settings" | "photos";
 
-type Health = {
-  classifier: "live" | "unconfigured";
-  sharedCache: "configured" | "optional_unconfigured";
+/** Named so a screen reader announces the view when focus moves into it. */
+const VIEW_LABELS: Record<View, string> = {
+  board: "Default AAC board",
+  ai: "AI AAC",
+  caregiver: "Caregiver",
+  settings: "Settings",
+  photos: "Personal photos",
 };
 
 function makeInitialSession(): BoardSessionState {
@@ -83,29 +90,49 @@ export function BridgeBoardApp() {
  *
  * Both controllers are created here and torn down only when this component
  * unmounts or the local profile is exited. That is deliberate: the board
- * session has to survive a trip to History and back, because discarding it
+ * session has to survive moving between screens, because discarding it
  * would throw away the active board and every picture already resolved for it.
  */
 function BridgeBoardShell() {
-  // Safe as lazy initialisers: this component only ever mounts in the browser.
-  const [stage, setStage] = useState<Stage>(() =>
-    !hasLocalSession() ? "login" : hasStoredSettings() ? "app" : "setup",
-  );
+  const [stage, setStage] = useState<Stage>("login");
+  const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
-  const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
+  const [photos, setPhotos] = useState<PersonalPhoto[]>(() => loadPersonalPhotos());
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
-  const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
+
+  const online = useOnlineStatus();
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Skips the very first render: focusing on load would steal focus from the
+  // page before anyone has asked for a view change.
+  const viewHasChanged = useRef(false);
 
   const boardController = useRef<BoardSessionController | null>(null);
   const realtimeController = useRef<RealtimeTranscriptionController | null>(null);
   // Read inside callbacks that must not be re-created when settings change —
   // notably `say`, which the controllers close over.
   const profileRef = useRef(profile);
+
+  const openAccount = useCallback(async (user: { id: string; email?: string | null }) => {
+    const [cloudProfile] = await Promise.all([
+      loadCloudProfile(user.id),
+    ]);
+    const nextProfile = cloudProfile ?? DEFAULT_PROFILE;
+    setAuthUser({ id: user.id, email: user.email ?? "" });
+    setProfile(nextProfile);
+    updateSettings(nextProfile);
+    setStage(cloudProfile ? "profile" : "setup");
+    setView("board");
+  }, []);
+
+  const handleAuthenticated = useCallback(async () => {
+    const user = await getCurrentUser();
+    if (user) await openAccount(user);
+  }, [openAccount]);
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
@@ -123,34 +150,19 @@ function BridgeBoardShell() {
   }, []);
 
   useEffect(() => {
-    const aborter = new AbortController();
-    void fetch("/api/health", { signal: aborter.signal })
-      .then((response) => (response.ok ? (response.json() as Promise<Health>) : null))
-      .then((result) => {
-        if (result) setHealth(result);
+    let cancelled = false;
+    void getCurrentUser()
+      .then(async (user) => {
+        if (user) await openAccount(user);
+        if (!cancelled) setAuthReady(true);
       })
-      .catch(() => undefined);
-    return () => aborter.abort();
-  }, []);
-
-  /**
-   * Restores a signed-in session on a return visit. An unreachable or absent
-   * session is not an error and is never surfaced: the shell simply stays on
-   * whatever stage the local state chose, so the board remains one tap away
-   * whether or not accounts are working.
-   */
-  useEffect(() => {
-    const aborter = new AbortController();
-    void fetchSession(aborter.signal).then((result) => {
-      if (result.status !== "signed_in") return;
-      setAuthUser(result.user);
-      startLocalSession();
-      setStage((current) =>
-        current === "login" ? (hasStoredSettings() ? "profile" : "setup") : current,
-      );
-    });
-    return () => aborter.abort();
-  }, []);
+      .catch(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openAccount]);
 
   // Releases the microphone if the tab closes or the shell unmounts while a
   // session is live. Nothing should keep listening past this component.
@@ -162,50 +174,41 @@ function BridgeBoardShell() {
     [],
   );
 
+  // Moving between screens leaves focus wherever it was, so a keyboard or
+  // switch user has to tab from the top of the document every time. Focusing
+  // the new view also makes a screen reader read its heading, which is how a
+  // view change gets announced at all.
+  useEffect(() => {
+    if (!viewHasChanged.current) {
+      viewHasChanged.current = true;
+      return;
+    }
+    contentRef.current?.focus();
+  }, [view]);
+
   const say = useCallback((phrase: string) => {
     const text = phrase.trim();
     if (!text) return;
     setLastSpoken(text);
-    speak(text, profileRef.current);
+    void speakNatural(text, profileRef.current);
   }, []);
 
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
     const next = updateSettings(patch);
     setProfile(next);
+    if (authUser) void saveCloudProfile(authUser.id, next);
     if (patch.quietMode || patch.speechEnabled === false) cancelSpeech();
-  }, []);
+  }, [authUser]);
 
-  const record = useCallback(
-    (entry: Omit<CommunicationHistoryEntry, "id" | "timestamp">) => {
-      const current = profileRef.current;
-      if (!current.historyEnabled) return;
-      appendHistory(entry, true);
-      setHistory(loadHistory());
-    },
-    [],
-  );
 
-  const chooseVocabulary = useCallback(
-    (item: VocabularyItem) => {
-      record({ boardType: "full_board", selectedVocabularyId: item.id, selectedLabel: item.label });
-    },
-    [record],
-  );
 
   const chooseRenderable = useCallback(
     (choice: RenderableChoice) => {
       // Selection lives in the controller so it survives the next commit.
       boardController.current?.selectChoice(choice.choiceKey);
       say(choice.spokenPhrase);
-      const board = boardController.current?.getState().board;
-      record({
-        boardType: board?.boardType ?? "choice",
-        questionText: board?.questionText,
-        selectedVocabularyId: choice.id,
-        selectedLabel: choice.label,
-      });
     },
-    [record, say],
+    [say],
   );
 
   const submitQuestion = useCallback((questionText: string) => {
@@ -271,61 +274,49 @@ function BridgeBoardShell() {
   );
 
   const finishSetup = useCallback((next: ChildProfile) => {
-    const saved = updateSettings(next);
-    setProfile(saved);
-    setStage("app");
-    setView("board");
-  }, []);
+    void (async () => {
+      const saved = authUser ? await saveCloudProfile(authUser.id, next) : next;
+      updateSettings(saved);
+      setProfile(saved);
+      setStage("app");
+      setView("board");
+    })();
+  }, [authUser]);
 
   const resetProfile = useCallback(() => {
-    if (!window.confirm("Reset this profile? Settings and history on this device will be erased.")) {
+    if (!window.confirm("Reset this profile? Settings and personal photos on this device will be erased.")) {
       return;
     }
     void stopListening();
     clearSettings();
-    clearHistory();
-    endLocalSession();
-    // Resetting the device should not leave an account still signed in on it.
-    void signOut();
+    clearPersonalPhotos();
+    void signOutCloud();
     setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
-    setHistory([]);
+    setPhotos([]);
     setStage("login");
     setView("board");
   }, [stopListening]);
 
   /**
-   * Signing out ends the account session only. Settings and history are the
+   * Signing out ends the account session only. Settings are the
    * child's and stay on the device — losing a board configuration because a
    * caregiver signed out of an optional account would be the wrong trade.
    */
   const handleSignOut = useCallback(() => {
     void stopListening();
-    void signOut();
+    void signOutCloud();
     setAuthUser(null);
-    endLocalSession();
     setStage("login");
     setView("board");
   }, [stopListening]);
 
-  const clearAllHistory = useCallback(() => {
-    if (!window.confirm("Clear the history saved on this device?")) return;
-    clearHistory();
-    setHistory([]);
-  }, []);
+  if (!authReady) return <main className="boot-screen" aria-busy="true" />;
 
   if (stage === "login") {
     return (
       <LoginScreen
-        onContinue={() => {
-          startLocalSession();
-          setStage(hasStoredSettings() ? "profile" : "setup");
-        }}
-        onSignedIn={(user) => {
-          setAuthUser(user);
-          startLocalSession();
-          setStage(hasStoredSettings() ? "profile" : "setup");
-        }}
+        onAuthenticated={() => void handleAuthenticated()}
       />
     );
   }
@@ -350,6 +341,16 @@ function BridgeBoardShell() {
     return <SetupScreen initial={profile} onFinish={finishSetup} />;
   }
 
+  // Personal photos are applied here rather than on the server: they are
+  // never uploaded, so a board arrives generic and is personalized on the
+  // device. applyPersonalPhotos returns the same reference when nothing
+  // matches, so this costs nothing when no photos are set.
+  const photoMap = personalPhotoMap(photos);
+  const personalizedSession =
+    session.board && photoMap.size > 0
+      ? { ...session, board: applyPersonalPhotos(session.board, photoMap) }
+      : session;
+
   const name = profile.displayName.trim();
 
   return (
@@ -361,7 +362,6 @@ function BridgeBoardShell() {
           onClick={() => setView("board")}
           aria-label="BridgeBoard home"
         >
-          <span className="brand-mark" aria-hidden="true">B</span>
           BridgeBoard
         </button>
 
@@ -372,13 +372,9 @@ function BridgeBoardShell() {
           <NavButton active={view === "ai"} onClick={() => setView("ai")}>
             AI AAC
           </NavButton>
-          <NavButton active={view === "history"} onClick={() => setView("history")}>
-            History
-          </NavButton>
         </nav>
 
         <div className="nav-right">
-          <HealthBadge health={health} />
           <button className="profile-pill" type="button" onClick={() => setView("caregiver")}>
             <span className="mini-avatar" aria-hidden="true">
               {(name[0] ?? "B").toUpperCase()}
@@ -407,16 +403,27 @@ function BridgeBoardShell() {
         session and any in-flight asset streams live in the shell, so coming
         back to AI AAC shows the same board with the same resolved pictures.
       */}
-      <div className="app-content">
+      <div
+        className="app-content"
+        ref={contentRef}
+        tabIndex={-1}
+        role="region"
+        aria-label={VIEW_LABELS[view]}
+      >
         {view === "board" ? (
-          <DefaultBoard profile={profile} onSpeak={say} onRecord={chooseVocabulary} />
+          <DefaultBoard
+            profile={profile}
+            photos={photoMap}
+            onSpeak={say}
+          />
         ) : null}
 
         {view === "ai" ? (
           <AiBoard
-            session={session}
+            session={personalizedSession}
             profile={profile}
             realtimeState={realtimeState}
+            online={online}
             microphoneError={microphoneError}
             onSubmitQuestion={submitQuestion}
             onToggleListening={toggleListening}
@@ -425,16 +432,17 @@ function BridgeBoardShell() {
           />
         ) : null}
 
-        {view === "history" ? (
-          <HistoryScreen
-            entries={history}
-            historyEnabled={profile.historyEnabled}
-            onClear={clearAllHistory}
+
+        {view === "caregiver" ? (
+          <CaregiverScreen
+            onOpenSettings={() => setView("settings")}
+            onOpenPhotos={() => setView("photos")}
+            photoCount={photos.length}
           />
         ) : null}
 
-        {view === "caregiver" ? (
-          <CaregiverScreen onOpenSettings={() => setView("settings")} />
+        {view === "photos" ? (
+          <PhotosScreen photos={photos} onChange={setPhotos} />
         ) : null}
 
         {view === "settings" ? (
@@ -467,22 +475,6 @@ function NavButton({
     >
       {children}
     </button>
-  );
-}
-
-/**
- * Says whether the AI side is usable without ever naming which credential is
- * absent. "AI setup required" is actionable for whoever deployed it and
- * meaningless to anyone else.
- */
-function HealthBadge({ health }: { health: Health | undefined }) {
-  if (!health) return null;
-  const live = health.classifier === "live";
-  return (
-    <span className={`status-badge${live ? " is-live" : ""}`}>
-      <span className="status-dot" aria-hidden="true" />
-      {live ? "AI ready" : "AI setup required"}
-    </span>
   );
 }
 

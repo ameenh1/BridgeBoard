@@ -7,11 +7,9 @@ import {
   saveSettings,
   updateSettings,
 } from "@/lib/storage/settings";
-import { appendHistory, clearHistory, loadHistory } from "@/lib/storage/history";
 import { DEFAULT_PROFILE } from "@/types/profile";
 
 const PROFILE_KEY = "bridgeboard.profile.v1";
-const HISTORY_KEY = "bridgeboard.history.v1";
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -62,7 +60,6 @@ describe("settings", () => {
     expect(loaded.visuals).toBe("mixed");
     expect(loaded.speechEnabled).toBe(false);
     expect(loaded.quietMode).toBe(true);
-    expect(loaded.historyEnabled).toBe(false);
     // ...and the new fields arrive with defaults rather than wiping the rest.
     expect(loaded.displayName).toBe("");
     expect(loaded.buttonSize).toBe("large");
@@ -109,49 +106,3 @@ describe("settings", () => {
   });
 });
 
-describe("history", () => {
-  it("stores and reads a body_needs entry", () => {
-    // This is the regression: body_needs was missing from the schema enum, so
-    // one such entry made the next read discard the whole log.
-    appendHistory({ boardType: "choice", selectedLabel: "Waffles" }, true);
-    appendHistory({ boardType: "body_needs", selectedLabel: "Hurt" }, true);
-
-    const entries = loadHistory();
-    expect(entries).toHaveLength(2);
-    expect(entries.map((entry) => entry.selectedLabel)).toEqual(["Waffles", "Hurt"]);
-  });
-
-  it("does nothing when history is disabled", () => {
-    appendHistory({ boardType: "choice", selectedLabel: "Waffles" }, false);
-    expect(loadHistory()).toEqual([]);
-  });
-
-  it("keeps at most 50 entries, newest kept", () => {
-    for (let index = 0; index < 60; index += 1) {
-      appendHistory({ boardType: "choice", selectedLabel: `word-${index}` }, true);
-    }
-    const entries = loadHistory();
-    expect(entries).toHaveLength(50);
-    expect(entries[0].selectedLabel).toBe("word-10");
-    expect(entries.at(-1)?.selectedLabel).toBe("word-59");
-  });
-
-  it("records the originating question", () => {
-    appendHistory(
-      { boardType: "choice", questionText: "Waffles or pancakes?", selectedLabel: "Waffles" },
-      true,
-    );
-    expect(loadHistory()[0].questionText).toBe("Waffles or pancakes?");
-  });
-
-  it("drops an unreadable log rather than rendering half of it", () => {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify([{ id: 1 }]));
-    expect(loadHistory()).toEqual([]);
-  });
-
-  it("clears", () => {
-    appendHistory({ boardType: "choice", selectedLabel: "Waffles" }, true);
-    clearHistory();
-    expect(loadHistory()).toEqual([]);
-  });
-});

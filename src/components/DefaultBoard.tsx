@@ -19,19 +19,19 @@ import { ChoiceIcon } from "./icons";
  */
 export function DefaultBoard({
   profile,
+  photos,
   onSpeak,
-  onRecord,
 }: {
   profile: ChildProfile;
+  /** Caregiver photos by vocabulary id. These outrank the bundled artwork. */
+  photos?: Map<string, string>;
   onSpeak: (phrase: string) => void;
-  onRecord: (item: VocabularyItem) => void;
 }) {
   const rows = useMemo(() => resolveDefaultBoard(), []);
   const [message, setMessage] = useState<VocabularyItem[]>([]);
 
   function selectWord(item: VocabularyItem) {
     setMessage((current) => [...current, item]);
-    onRecord(item);
     onSpeak(item.spokenPhrase);
   }
 
@@ -47,6 +47,7 @@ export function DefaultBoard({
                 <AacTile
                   key={item.id}
                   item={item}
+                  photo={photos?.get(item.id)}
                   large={profile.buttonSize === "large"}
                   showLabel={profile.textLabelsEnabled}
                   onSelect={selectWord}
@@ -58,44 +59,46 @@ export function DefaultBoard({
       </section>
 
       <section className="message-bar" aria-label="Message">
-        <div className="message-heading">
-          <h2>Your message</h2>
-          <span>
-            {message.length} {message.length === 1 ? "word" : "words"}
-          </span>
-        </div>
-        <div className="message-box">
-          <div className="message-chips" aria-live="polite">
-            {message.length ? (
-              message.map((item, index) => (
-                <span className="message-chip" key={`${item.id}-${index}`}>
-                  {item.label}
-                </span>
-              ))
-            ) : (
-              <span className="message-empty">Tap a picture to build a sentence</span>
-            )}
+        <div className="message-layout">
+          <div className="message-heading">
+            <h2>Your message</h2>
+            <span>
+              {message.length} {message.length === 1 ? "word" : "words"}
+            </span>
           </div>
-          <div className="message-actions">
-            <button
-              type="button"
-              aria-label="Delete last word"
-              disabled={!message.length}
-              onClick={() => setMessage((current) => current.slice(0, -1))}
-            >
-              <Delete aria-hidden="true" size={22} />
-            </button>
-            <button type="button" disabled={!message.length} onClick={() => setMessage([])}>
-              Clear
-            </button>
-            <button
-              type="button"
-              className="speak-message"
-              disabled={!message.length}
-              onClick={() => onSpeak(sentence)}
-            >
-              Speak
-            </button>
+          <div className="message-box">
+            <div className="message-chips" aria-live="polite">
+              {message.length ? (
+                message.map((item, index) => (
+                  <span className="message-chip" key={`${item.id}-${index}`}>
+                    {item.label}
+                  </span>
+                ))
+              ) : (
+                <span className="message-empty">Tap a picture to build a sentence</span>
+              )}
+            </div>
+            <div className="message-actions">
+              <button
+                type="button"
+                aria-label="Delete last word"
+                disabled={!message.length}
+                onClick={() => setMessage((current) => current.slice(0, -1))}
+              >
+                <Delete aria-hidden="true" size={22} />
+              </button>
+              <button type="button" disabled={!message.length} onClick={() => setMessage([])}>
+                Clear
+              </button>
+              <button
+                type="button"
+                className="speak-message"
+                disabled={!message.length}
+                onClick={() => onSpeak(sentence)}
+              >
+                Speak
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -105,11 +108,13 @@ export function DefaultBoard({
 
 function AacTile({
   item,
+  photo,
   large,
   showLabel,
   onSelect,
 }: {
   item: VocabularyItem;
+  photo: string | undefined;
   large: boolean;
   showLabel: boolean;
   onSelect: (item: VocabularyItem) => void;
@@ -117,7 +122,10 @@ function AacTile({
   // The manifest is generated at build time from what is actually in public/,
   // so a catalog entry naming an asset that was never produced renders its
   // icon instead of a broken-image box.
-  const image = item.imageUrl && imageExists(item.imageUrl) ? item.imageUrl : undefined;
+  // Personal photo first, exactly as the image priority specifies: a drawing
+  // of a cup is not this person's cup.
+  const bundled = item.imageUrl && imageExists(item.imageUrl) ? item.imageUrl : undefined;
+  const image = photo ?? bundled;
 
   return (
     <button
@@ -126,7 +134,12 @@ function AacTile({
       onClick={() => onSelect(item)}
       aria-label={showLabel ? undefined : item.label}
     >
-      {image ? (
+      {photo ? (
+        // A data URL from the device; next/image cannot optimize it and must
+        // not try.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" />
+      ) : image ? (
         <Image src={image} alt="" width={256} height={256} sizes="(max-width: 800px) 16vw, 180px" />
       ) : (
         <span className="tile-symbol">

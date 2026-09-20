@@ -3,6 +3,39 @@
 import type { ChildProfile } from "@/types/profile";
 import { MAX_SPEECH_RATE, MIN_SPEECH_RATE } from "@/types/profile";
 
+let currentAudio: HTMLAudioElement | null = null;
+let speechRequest = 0;
+
+/** Uses ElevenLabs online and falls back to the device voice if unavailable. */
+export async function speakNatural(phrase: string, profile: ChildProfile): Promise<void> {
+  const text = phrase.trim();
+  if (!text || !profile.speechEnabled || profile.quietMode) return;
+
+  cancelSpeech();
+  const request = ++speechRequest;
+  try {
+    const response = await fetch("/api/speech", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) throw new Error(`speech_${response.status}`);
+    const blob = await response.blob();
+    if (request !== speechRequest) return;
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    audio.onended = () => {
+      if (currentAudio === audio) currentAudio = null;
+      URL.revokeObjectURL(url);
+    };
+    await audio.play();
+  } catch {
+    if (request === speechRequest) speak(text, profile);
+  }
+}
+
 /**
  * Speaks an authored phrase.
  *
@@ -40,6 +73,12 @@ export function speak(phrase: string, profile: ChildProfile): void {
 
 /** Stops anything mid-utterance, e.g. when Quiet Mode is switched on. */
 export function cancelSpeech(): void {
+  speechRequest += 1;
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   try {
     window.speechSynthesis.cancel();
