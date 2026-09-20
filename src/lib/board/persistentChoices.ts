@@ -12,8 +12,8 @@ import { toRenderableChoice } from "./renderableChoice";
 export const PERSISTENT_AI_CHOICE_IDS = [
   "core_yes",
   "core_no",
+  "core_want",
   "core_more",
-  "core_all_done",
 ] as const;
 
 const PERSISTENT_KEYS = new Set<string>(PERSISTENT_AI_CHOICE_IDS);

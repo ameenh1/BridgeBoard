@@ -62,7 +62,7 @@ describe("selected choice", () => {
     const state = next.getState();
     expect(state.selectedChoiceKey).toBe("waffles");
     const keys = state.board?.choices.map((item) => item.choiceKey) ?? [];
-    expect(keys.slice(0, 4)).toEqual(["core_yes", "core_no", "core_more", "core_all_done"]);
+    expect(keys.slice(0, 4)).toEqual(["core_yes", "core_no", "core_want", "core_more"]);
     expect(keys).toContain("waffles");
     expect(keys).toContain("pancakes");
   });

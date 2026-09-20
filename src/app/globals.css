@@ -1068,39 +1068,89 @@ body {
   margin-top: 26px;
 }
 
-/* AI view: everything above the tiles fits in ~150px. */
-.ai-topbar {
-  align-items: baseline;
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
+.ai-capture {
+  background: linear-gradient(135deg, #e5f5f1 0%, #f8f1fb 100%);
+  border: 1px solid #b9dfd9;
+  border-radius: 28px;
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 22px clamp(18px, 4vw, 42px) 26px;
+  text-align: center;
 }
 
-.ai-topbar h1 {
-  font-family: var(--display);
-  font-size: clamp(30px, 4vw, 46px);
-  font-weight: 400;
-  margin: 0;
-}
-
-.question-form--compact {
-  margin-top: 12px;
-}
-
-.question-form--compact .question-controls input,
-.question-form--compact .listen-button,
-.question-form--compact .ask-button {
+.ai-capture-heading p {
+  color: var(--muted);
   font-size: 16px;
-  min-height: 44px;
+  margin: 6px 0 16px;
 }
 
-.question-form--compact .question-controls input {
-  padding: 0 12px;
+.ai-listen-button {
+  align-items: center;
+  background: var(--coral);
+  border: 0;
+  border-radius: 28px;
+  box-shadow: 0 10px 22px rgba(240, 101, 107, 0.24);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+  min-height: 156px;
+  padding: 22px 36px;
+  transition: transform 160ms ease, background 160ms ease;
+  width: min(340px, 100%);
 }
 
-.listen-button--icon {
-  flex: 0 0 auto;
-  padding: 0 14px;
+.ai-listen-button:hover {
+  background: var(--coral-deep);
+  transform: translateY(-3px);
+}
+
+.ai-listen-button.listening {
+  animation: pulse 1.4s infinite;
+  background: var(--green-deep);
+  box-shadow: 0 10px 22px rgba(79, 156, 103, 0.26);
+}
+
+.ai-listen-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ai-listen-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  height: 76px;
+  justify-content: center;
+  width: 76px;
+}
+
+.ai-listen-button strong {
+  font-size: 22px;
+}
+
+.ai-listen-button small {
+  font-size: 14px;
+  opacity: 0.88;
+}
+
+.question-form--typed {
+  margin-top: 18px;
+}
+
+.question-form--typed .question-controls {
+  justify-content: center;
+}
+
+.question-form--typed .question-controls input {
+  min-height: 48px;
+}
+
+.question-form--typed .ask-button {
+  min-height: 48px;
 }
 
 .ai-view .heard-question {
@@ -1241,6 +1291,39 @@ body {
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 12px;
+}
+
+.choice-grid--quick {
+  margin-top: 26px;
+}
+
+.choice-card--quick {
+  min-height: 154px;
+}
+
+.choice-card--quick:nth-child(1) {
+  background: #e5f5ee;
+  border-color: #b7dec5;
+}
+
+.choice-card--quick:nth-child(2) {
+  background: #fff0ef;
+  border-color: #f3c2c0;
+}
+
+.choice-card--quick:nth-child(3) {
+  background: #fff7dc;
+  border-color: #edd990;
+}
+
+.choice-card--quick:nth-child(4) {
+  background: #f0e8fa;
+  border-color: #d5c0ec;
+}
+
+.choice-card--quick .choice-copy strong {
+  font-size: 20px;
+  text-transform: capitalize;
 }
 
 .ai-row-hint {

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Check, LayoutGrid, Mic, MicOff, RefreshCw, Send, Sparkles, Volume2, WifiOff,
+  LayoutGrid, Mic, MicOff, Send, Sparkles, Volume2, WifiOff,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
@@ -58,7 +58,7 @@ export function AiBoard({
       <button
         key={choice.choiceKey}
         type="button"
-        className={`choice-card choice-card--dense${selected ? " is-selected" : ""}${isPersistentAiChoice(choice) ? " is-persistent" : ""}`}
+        className={`choice-card choice-card--dense${isPersistentAiChoice(choice) ? " choice-card--quick is-persistent" : ""}${selected ? " is-selected" : ""}`}
         aria-pressed={selected}
         // When word labels are off and the spoken phrase differs from the
         // visible label, announce what tapping will actually say.
@@ -104,57 +104,44 @@ export function AiBoard({
 
   return (
     <section className="mode-view ai-view">
-      {/*
-        One compact header: title left, non-blocking board status right.
-        The status never disables anything — tiles stay clickable throughout.
-      */}
-      <div className="ai-topbar">
-        <h1>AI AAC</h1>
-        <p className={`refresh-state${session.isRefreshing ? " is-active" : ""}`} aria-live="polite">
-          {session.isRefreshing ? (
-            <>
-              <RefreshCw aria-hidden="true" size={16} className="spin" /> Updating choices
-            </>
-          ) : board ? (
-            <>
-              <Check aria-hidden="true" size={16} /> Board ready
-            </>
-          ) : (
-            <>Ready for a question</>
-          )}
-        </p>
-      </div>
-
-      <form className="question-form question-form--compact" onSubmit={handleSubmit}>
-        <label htmlFor="caregiver-question" className="sr-only">
-          Caregiver question
-        </label>
-        <div className="question-controls">
-          <input
-            id="caregiver-question"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Would you like waffles or dragon fruit?"
-            autoComplete="off"
-            maxLength={300}
-          />
-          <button
-            type="button"
-            className={`listen-button listen-button--icon${listening ? " listening" : ""}`}
-            onClick={onToggleListening}
-            aria-pressed={listening}
-            disabled={!online}
-            aria-label={listening ? "Stop listening" : "Listen for a spoken question"}
-            title={!online ? "Needs a network connection" : listening ? "Stop" : "Listen"}
-          >
-            {listening ? <MicOff aria-hidden="true" size={20} /> : <Mic aria-hidden="true" size={20} />}
-          </button>
-          <button className="primary-button ask-button" type="submit" disabled={!question.trim() || !online}>
-            <Send aria-hidden="true" size={18} />
-            <span>Ask</span>
-          </button>
+      <section className="ai-capture" aria-label="Ask a question">
+        <div className="ai-capture-heading">
+          <span className="eyebrow">Ask a question</span>
+          <p>Tap the microphone to listen, or type a question below.</p>
         </div>
-      </form>
+        <button
+          type="button"
+          className={`ai-listen-button${listening ? " listening" : ""}`}
+          onClick={onToggleListening}
+          aria-pressed={listening}
+          disabled={!online}
+          aria-label={listening ? "Stop listening" : "Listen for a spoken question"}
+          title={!online ? "Needs a network connection" : listening ? "Stop listening" : "Start listening"}
+        >
+          <span className="ai-listen-icon" aria-hidden="true">
+            {listening ? <MicOff size={46} /> : <Mic size={46} />}
+          </span>
+          <strong>{listening ? "Listening…" : "Tap to listen"}</strong>
+          <small>{listening ? "Tap to stop" : "Use the microphone to ask"}</small>
+        </button>
+        <form className="question-form question-form--typed" onSubmit={handleSubmit}>
+          <label htmlFor="caregiver-question" className="sr-only">Caregiver question</label>
+          <div className="question-controls">
+            <input
+              id="caregiver-question"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Or type a question…"
+              autoComplete="off"
+              maxLength={300}
+            />
+            <button className="primary-button ask-button" type="submit" disabled={!question.trim() || !online}>
+              <Send aria-hidden="true" size={18} />
+              <span>Ask</span>
+            </button>
+          </div>
+        </form>
+      </section>
 
       {!online ? (
         <p className="offline-notice" role="status">
@@ -204,15 +191,19 @@ export function AiBoard({
       */}
       {board ? (
         <>
+          <div className="choice-grid choice-grid--quick" aria-label="Quick answers">
+            {quickChoices.map((choice) => renderChoice(choice))}
+          </div>
           <div className="choice-grid choice-grid--ai">
             {aiChoices.map((choice) => renderChoice(choice))}
           </div>
-          {aiChoices.length === 0 ? (
-            <p className="ai-row-hint">Ask a question above — its pictures land here.</p>
+          {session.isRefreshing ? (
+            <p className="ai-row-hint">Updating choices…</p>
+          ) : aiChoices.length === 0 ? (
+            <p className="ai-row-hint">
+              Ask a question above — its pictures land here.
+            </p>
           ) : null}
-          <div className="choice-grid choice-grid--quick">
-            {quickChoices.map((choice) => renderChoice(choice))}
-          </div>
         </>
       ) : (
         <div className="empty-board">
