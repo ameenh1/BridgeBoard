@@ -1429,7 +1429,7 @@ body {
 /* Dense AI tiles: label-first, picture second in size priority. */
 .choice-card--dense {
   gap: 6px;
-  min-height: 118px;
+  min-height: 154px;
   padding: 10px 8px;
 }
 
@@ -1882,6 +1882,7 @@ body {
   }
 
   .ai-choice-slot,
+  .choice-card--dense,
   .choice-card--quick {
     min-height: 104px;
   }
