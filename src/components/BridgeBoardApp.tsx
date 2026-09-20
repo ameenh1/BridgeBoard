@@ -57,11 +57,6 @@ import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 type Stage = "login" | "profile" | "setup" | "app";
 type View = "board" | "ai" | "history" | "caregiver" | "settings" | "photos";
 
-type Health = {
-  classifier: "live" | "unconfigured";
-  sharedCache: "configured" | "optional_unconfigured";
-};
-
 function makeInitialSession(): BoardSessionState {
   return {
     board: createWelcomeBoard(),
@@ -109,7 +104,6 @@ function BridgeBoardShell() {
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
-  const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
@@ -153,17 +147,6 @@ function BridgeBoardShell() {
       controller.destroy();
       boardController.current = null;
     };
-  }, []);
-
-  useEffect(() => {
-    const aborter = new AbortController();
-    void fetch("/api/health", { signal: aborter.signal })
-      .then((response) => (response.ok ? (response.json() as Promise<Health>) : null))
-      .then((result) => {
-        if (result) setHealth(result);
-      })
-      .catch(() => undefined);
-    return () => aborter.abort();
   }, []);
 
   useEffect(() => {
@@ -507,22 +490,6 @@ function NavButton({
     >
       {children}
     </button>
-  );
-}
-
-/**
- * Says whether the AI side is usable without ever naming which credential is
- * absent. "AI setup required" is actionable for whoever deployed it and
- * meaningless to anyone else.
- */
-function HealthBadge({ health }: { health: Health | undefined }) {
-  if (!health) return null;
-  const live = health.classifier === "live";
-  return (
-    <span className={`status-badge${live ? " is-live" : ""}`}>
-      <span className="status-dot" aria-hidden="true" />
-      {live ? "AI ready" : "AI setup required"}
-    </span>
   );
 }
 
