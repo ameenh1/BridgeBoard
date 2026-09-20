@@ -181,9 +181,7 @@ describe("full board", () => {
 
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
-    // Scoped to the support actions: "Full board" is also a nav tab now.
-    const actions = document.querySelector(".action-rail") as HTMLElement;
-    await user.click(within(actions).getByRole("button", { name: /full board/i }));
+    await user.click(screen.getByRole("button", { name: /full board/i }));
     expect(await screen.findByRole("region", { name: "Places" })).toBeDefined();
   });
 

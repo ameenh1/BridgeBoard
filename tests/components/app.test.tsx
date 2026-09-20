@@ -304,17 +304,13 @@ describe("ai board", () => {
     await user.click(screen.getByRole("button", { name: /^ask$/i }));
 
     // Mid-classification: both old choices are still on screen and clickable,
-    // the selection is still held, and support actions still work.
+    // the selection is still held while the next board is generated.
     await screen.findByText(/updating choices/i);
     const waffles = screen.getByRole("button", { name: /waffles/i });
     const dragon = screen.getByRole("button", { name: /dragon fruit/i });
     expect(waffles).not.toBeDisabled();
     expect(dragon).not.toBeDisabled();
     expect(waffles.getAttribute("aria-pressed")).toBe("true");
-
-    const before = speechTexts().length;
-    await user.click(screen.getByRole("button", { name: /^help$/i }));
-    await waitFor(() => expect(speechTexts().length).toBe(before + 1));
 
     release?.();
 
@@ -361,9 +357,7 @@ describe("ai board", () => {
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
-    // Scoped to the support actions: "Full board" is also a nav tab now.
-    const actions = document.querySelector(".action-rail") as HTMLElement;
-    await user.click(within(actions).getByRole("button", { name: /full board/i }));
+    await user.click(screen.getByRole("button", { name: /full board/i }));
     expect(await screen.findByRole("region", { name: "People" })).toBeDefined();
   });
 });

@@ -1,25 +1,16 @@
 "use client";
 
 import {
-  LayoutGrid, Mic, MicOff, Send, Sparkles, Volume2, WifiOff,
+  Mic, MicOff, Send, Sparkles, Volume2, WifiOff,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
-import type { BoardAction, RenderableChoice } from "@/types/board";
+import type { RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { ChoiceVisual, VisualAttribution } from "./ChoiceVisual";
-import { ACTIONS, AlertCircle, ChoiceIcon } from "./icons";
+import { AlertCircle, ChoiceIcon } from "./icons";
 import { isPersistentAiChoice } from "@/lib/board/persistentChoices";
-
-const ALL_ACTIONS: BoardAction[] = [
-  "help",
-  "repeat",
-  "something_else",
-  "not_that",
-  "need_more_time",
-  "full_board",
-];
 
 export function AiBoard({
   session,
@@ -30,7 +21,6 @@ export function AiBoard({
   onSubmitQuestion,
   onToggleListening,
   onChoose,
-  onAction,
 }: {
   session: BoardSessionState;
   profile: ChildProfile;
@@ -41,7 +31,6 @@ export function AiBoard({
   onSubmitQuestion: (questionText: string) => void;
   onToggleListening: () => void;
   onChoose: (choice: RenderableChoice) => void;
-  onAction: (action: BoardAction) => void;
 }) {
   const [question, setQuestion] = useState("");
   const board = session.board;
@@ -92,8 +81,6 @@ export function AiBoard({
   // The committed board keeps its own actions. Before the first question there
   // is no board yet, so the full support set is offered — those phrases are
   // authored locally and never depend on the classifier.
-  const actions = board?.actions.length ? board.actions : ALL_ACTIONS;
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = question.trim();
@@ -223,28 +210,6 @@ export function AiBoard({
         </div>
       )}
 
-      <div className="action-rail" aria-label="Always available">
-        {actions.map((action) => {
-          const config = ACTIONS[action];
-          const Icon = config.icon;
-          return (
-            <button
-              key={action}
-              type="button"
-              className={action === "full_board" ? "full-board-action" : undefined}
-              onClick={() => onAction(action)}
-              aria-label={config.label}
-              title={config.phrase || config.label}
-            >
-              {action === "full_board" ? (
-                <LayoutGrid aria-hidden="true" size={16} />
-              ) : (
-                <Icon aria-hidden="true" size={16} />
-              )}
-            </button>
-          );
-        })}
-      </div>
     </section>
   );
 }

@@ -1450,38 +1450,6 @@ body {
   background: var(--mint-wash);
 }
 
-/* Slim icon rail replacing the wrapped "Always available" pills. */
-.action-rail {
-  display: flex;
-  gap: 8px;
-  flex: 0 0 auto;
-  margin-top: 12px;
-}
-
-.action-rail button {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #d3d0ca;
-  border-radius: 999px;
-  color: var(--ink);
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  min-height: var(--tap-min);
-  min-width: var(--tap-min);
-  padding: 0 12px;
-}
-
-.action-rail button:hover {
-  border-color: var(--green);
-}
-
-.action-rail .full-board-action {
-  background: var(--mint-tint);
-  border-color: var(--green);
-  margin-left: auto;
-}
-
 /*
    The picture area reserves its space up front so a picture that resolves
    two seconds later never reflows the board under someone's finger.

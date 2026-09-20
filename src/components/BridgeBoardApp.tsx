@@ -31,7 +31,7 @@ import {
 } from "@/lib/storage/personalPhotos";
 import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
-import type { BoardAction, RenderableChoice } from "@/types/board";
+import type { RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
 import { AiBoard } from "./AiBoard";
@@ -42,7 +42,6 @@ import { PhotosScreen } from "./PhotosScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
-import { ACTIONS } from "./icons";
 import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
@@ -104,7 +103,6 @@ function BridgeBoardShell() {
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
-  const [lastSpoken, setLastSpoken] = useState("");
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
   const online = useOnlineStatus();
@@ -191,7 +189,6 @@ function BridgeBoardShell() {
   const say = useCallback((phrase: string) => {
     const text = phrase.trim();
     if (!text) return;
-    setLastSpoken(text);
     void speakNatural(text, profileRef.current);
   }, []);
 
@@ -259,21 +256,6 @@ function BridgeBoardShell() {
     if (realtimeState === "connecting" || realtimeState === "connected") void stopListening();
     else void startListening();
   }, [realtimeState, startListening, stopListening]);
-
-  const handleAction = useCallback(
-    (action: BoardAction) => {
-      if (action === "full_board") {
-        setView("full");
-        return;
-      }
-      if (action === "repeat" && lastSpoken) {
-        say(lastSpoken);
-        return;
-      }
-      say(ACTIONS[action].phrase);
-    },
-    [lastSpoken, say],
-  );
 
   const finishSetup = useCallback((next: ChildProfile) => {
     void (async () => {
@@ -433,7 +415,6 @@ function BridgeBoardShell() {
             onSubmitQuestion={submitQuestion}
             onToggleListening={toggleListening}
             onChoose={chooseRenderable}
-            onAction={handleAction}
           />
         ) : null}
 
