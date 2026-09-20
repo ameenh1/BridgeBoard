@@ -371,13 +371,12 @@ describe("ai board", () => {
   });
 
 
-  it("switches to the full board without waiting for the AI", async () => {
+  it("does not show the removed full board view", async () => {
     const user = userEvent.setup();
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
-    await user.click(screen.getByRole("button", { name: /full board/i }));
-    expect(await screen.findByRole("region", { name: "People" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /full board/i })).toBeNull();
   });
 });
 

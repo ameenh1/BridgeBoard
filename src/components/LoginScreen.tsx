@@ -99,7 +99,7 @@ export function LoginScreen({ onAuthenticated }: { onAuthenticated: () => void }
 
       <section className="feature-panel">
         <form className="login-form" onSubmit={handleSubmit}>
-          <h2>{mode === "signIn" ? "Welcome Back" : "Create your account"}</h2>
+          <h2>{mode === "signIn" ? "Welcome back, Cha" : "Create your account"}</h2>
           <p>{mode === "signIn" ? "Sign in to access your communication board" : "Save your board settings across devices"}</p>
 
           <label htmlFor="email">Email</label>

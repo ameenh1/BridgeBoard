@@ -187,6 +187,33 @@ body {
   width: 100%;
 }
 
+.sound-waves {
+  height: 50px;
+  left: 88%;
+  pointer-events: none;
+  position: absolute;
+  top: 28%;
+  transform: rotate(120deg) scaleX(-1) scale(.8);
+  width: 50px;
+  z-index: 4;
+}
+
+.sound-waves span {
+  border: 3px solid transparent;
+  border-right-color: var(--coral);
+  border-top-color: var(--coral);
+  border-radius: 50%;
+  box-sizing: border-box;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.sound-waves span:nth-child(1) { height: 18px; width: 18px; }
+.sound-waves span:nth-child(2) { height: 33px; width: 33px; }
+.sound-waves span:nth-child(3) { height: 48px; width: 48px; }
+
 .login-form {
   letter-spacing: 0.01em;
   width: min(520px, 100%);

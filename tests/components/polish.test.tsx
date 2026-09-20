@@ -158,42 +158,11 @@ describe("focus and announcement on view change", () => {
   });
 });
 
-describe("full board", () => {
-  it("reaches words the quick board cannot, and speaks them", async () => {
-    const user = userEvent.setup();
+describe("removed full board", () => {
+  it("is not available in the main navigation", async () => {
     await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
-    // Mom exists in the catalog but is not on the 24-tile quick board.
-    expect(screen.queryByRole("button", { name: /^Mom$/ })).toBeNull();
-
-    await user.click(screen.getByRole("button", { name: /full board/i }));
-    const people = await screen.findByRole("region", { name: "People" });
-    await user.click(within(people).getByRole("button", { name: /^Mom$/ }));
-
-    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want Mom."));
-  });
-
-  it("is where the Full board support action goes", async () => {
-    const user = userEvent.setup();
-    await enterApp();
-    await screen.findByRole("navigation", { name: /main/i });
-
-    await user.click(screen.getByRole("button", { name: /ai aac/i }));
-
-    await user.click(screen.getByRole("button", { name: /full board/i }));
-    expect(await screen.findByRole("region", { name: "Places" })).toBeDefined();
-  });
-
-  it("works with no connection", async () => {
-    const user = userEvent.setup();
-    setOnline(false);
-    await enterApp();
-    await screen.findByRole("navigation", { name: /main/i });
-
-    await user.click(screen.getByRole("button", { name: /full board/i }));
-    const places = await screen.findByRole("region", { name: "Places" });
-    await user.click(within(places).getByRole("button", { name: /^Home$/ }));
-    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want to go home."));
+    expect(screen.queryByRole("button", { name: /full board/i })).toBeNull();
   });
 });
