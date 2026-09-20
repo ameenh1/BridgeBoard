@@ -85,7 +85,7 @@ function FullBoardTile({
     <button
       type="button"
       className={`aac-card${photo || bundled ? "" : " text-only"}${large ? " large-buttons" : ""}`}
-      onClick={() => onSelect(choice.spokenPhrase)}
+      onClick={() => onSelect(choice.label)}
       aria-label={showLabel ? undefined : choice.label}
     >
       {photo ? (

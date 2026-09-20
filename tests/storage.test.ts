@@ -19,6 +19,12 @@ describe("settings", () => {
   it("returns defaults when nothing is stored", () => {
     expect(loadSettings()).toEqual(DEFAULT_PROFILE);
     expect(hasStoredSettings()).toBe(false);
+    expect(DEFAULT_PROFILE.maxChoices).toBe(8);
+  });
+
+  it("round-trips the eight-choice setting", () => {
+    saveSettings({ ...DEFAULT_PROFILE, maxChoices: 8 });
+    expect(loadSettings().maxChoices).toBe(8);
   });
 
   it("round-trips the new fields", () => {
@@ -28,6 +34,7 @@ describe("settings", () => {
       buttonSize: "standard",
       speechRate: 1.2,
       voiceURI: "urn:voice:test",
+      noiseGateDb: -30,
     });
 
     const loaded = loadSettings();
@@ -35,6 +42,7 @@ describe("settings", () => {
     expect(loaded.buttonSize).toBe("standard");
     expect(loaded.speechRate).toBe(1.2);
     expect(loaded.voiceURI).toBe("urn:voice:test");
+    expect(loaded.noiseGateDb).toBe(-30);
     expect(hasStoredSettings()).toBe(true);
   });
 
@@ -64,6 +72,7 @@ describe("settings", () => {
     expect(loaded.displayName).toBe("");
     expect(loaded.buttonSize).toBe("large");
     expect(loaded.speechRate).toBe(0.9);
+    expect(loaded.noiseGateDb).toBeNull();
     expect(hasStoredSettings()).toBe(true);
   });
 

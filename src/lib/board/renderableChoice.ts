@@ -41,6 +41,7 @@ export function toRenderableChoice(
 export function iconForCategory(category: string): string {
   return ({
     food: "utensils",
+    food_places: "utensils",
     drink: "cup-soda",
     feelings: "smile",
     needs: "life-buoy",

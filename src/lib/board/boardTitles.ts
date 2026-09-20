@@ -3,6 +3,8 @@ import type { BoardType } from "@/types/board";
 /** Question types the classifier may report. Mirrors the agreed AI contract. */
 export type QuestionType =
   | "forced_choice"
+  | "open_ended"
+  | "statement"
   | "feelings_needs"
   | "yes_no"
   | "body_needs"
@@ -10,6 +12,8 @@ export type QuestionType =
 
 const TITLES: Record<QuestionType, string> = {
   forced_choice: "You can pick one",
+  open_ended: "Choose an answer",
+  statement: "Choose a response",
   feelings_needs: "How are you feeling?",
   yes_no: "Yes or no?",
   body_needs: "What do you need?",
@@ -18,7 +22,9 @@ const TITLES: Record<QuestionType, string> = {
 
 const TOPIC_TITLES: Partial<Record<string, string>> = {
   food: "What would you like to eat?",
+  food_places: "Where would you like to eat?",
   drink: "What would you like to drink?",
+  places: "Where would you like to go?",
   bathroom: "What do you need?",
 };
 
@@ -30,12 +36,17 @@ export function getBoardTitle(questionType: QuestionType, topic: string): string
   if (questionType === "forced_choice") {
     return TOPIC_TITLES[topic] ?? TITLES.forced_choice;
   }
+  if (questionType === "open_ended") {
+    return TOPIC_TITLES[topic] ?? TITLES.open_ended;
+  }
   return TITLES[questionType];
 }
 
 export function mapQuestionType(questionType: QuestionType): BoardType {
   switch (questionType) {
     case "forced_choice":
+    case "open_ended":
+    case "statement":
       return "choice";
     case "feelings_needs":
       return "feelings_needs";

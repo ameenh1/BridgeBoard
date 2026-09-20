@@ -14,7 +14,7 @@ export const ClassifyQuestionRequestSchema = z.object({
   profile: z
     .object({
       id: z.string().min(1).max(100),
-      maxChoices: z.union([z.literal(2), z.literal(4), z.literal(6)]),
+      maxChoices: z.union([z.literal(2), z.literal(4), z.literal(6), z.literal(8)]),
       visuals: z.enum(["photos_first", "mixed", "icons_first"]),
     })
     .partial()

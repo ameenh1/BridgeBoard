@@ -37,10 +37,10 @@ export async function speakNatural(phrase: string, profile: ChildProfile): Promi
 }
 
 /**
- * Speaks an authored phrase.
+ * Speaks app-owned text.
  *
- * Every string that reaches here comes from the approved vocabulary or from a
- * support action's authored phrase. No model output is ever spoken.
+ * Every selection string that reaches here comes from a visible catalog label,
+ * a built sentence, or a support action. No model output is ever spoken.
  *
  * Total by design: a device with no speech synthesis, a blocked voice list or
  * a throwing `speak()` must not stop the board from working. The tile has

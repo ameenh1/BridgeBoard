@@ -1,7 +1,7 @@
 import type { VocabularyItem } from "@/types/vocabulary";
 import { CORE_VOCABULARY } from "./coreVocabulary";
 
-/** Context vocabulary the classifier may propose for a caregiver question. */
+/** Context vocabulary the classifier may propose for a caregiver message. */
 const CONTEXT_VOCABULARY: VocabularyItem[] = [
   // Food
   {
@@ -19,6 +19,55 @@ const CONTEXT_VOCABULARY: VocabularyItem[] = [
     spokenPhrase: "I want pancakes.",
     category: "food",
     iconKey: "utensils",
+    allowedForAI: true,
+    isCore: false,
+  },
+
+  // Generic places to eat. These are safe fallbacks for open-ended questions
+  // and also give the classifier a small, topic-specific catalog to choose
+  // from instead of treating every destination as a food place.
+  {
+    id: "food_place_restaurant",
+    label: "Restaurant",
+    spokenPhrase: "I want to eat at a restaurant.",
+    category: "food_places",
+    iconKey: "utensils",
+    allowedForAI: true,
+    isCore: false,
+  },
+  {
+    id: "food_place_cafe",
+    label: "Café",
+    spokenPhrase: "I want to eat at a café.",
+    category: "food_places",
+    iconKey: "utensils",
+    allowedForAI: true,
+    isCore: false,
+  },
+  {
+    id: "food_place_fast_food",
+    label: "Fast food",
+    spokenPhrase: "I want fast food.",
+    category: "food_places",
+    iconKey: "utensils",
+    allowedForAI: true,
+    isCore: false,
+  },
+  {
+    id: "food_place_picnic",
+    label: "Picnic",
+    spokenPhrase: "I want to have a picnic.",
+    category: "food_places",
+    iconKey: "utensils",
+    allowedForAI: true,
+    isCore: false,
+  },
+  {
+    id: "food_place_home",
+    label: "Home",
+    spokenPhrase: "I want to eat at home.",
+    category: "food_places",
+    iconKey: "house",
     allowedForAI: true,
     isCore: false,
   },

@@ -32,7 +32,7 @@ export function DefaultBoard({
 
   function selectWord(item: VocabularyItem) {
     setMessage((current) => [...current, item]);
-    onSpeak(item.spokenPhrase);
+    onSpeak(item.label);
   }
 
   const sentence = message.map((item) => item.label).join(" ");

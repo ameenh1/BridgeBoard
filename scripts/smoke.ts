@@ -31,6 +31,26 @@ check("original caregiver text is preserved", board.questionText === question);
 check("catalog and exact spoken concepts are included", board.choices.length === 2);
 check("every choice is usable before image work", board.choices.every((choice) => Boolean(choice.label && choice.iconKey)));
 
+const openBoard = await buildRenderableBoard(
+  classification({
+    questionType: "open_ended",
+    topic: "food_places",
+    candidateVocabularyIds: ["place_car", "place_school"],
+    explicitVisualConcepts: [],
+    suggestedAnswerConcepts: ["Restaurant", "Café", "Car", "School"],
+  }),
+  { ...DEFAULT_PROFILE, maxChoices: 8 },
+  "Where do you want to eat?",
+);
+check(
+  "open food-place questions offer relevant answers",
+  openBoard.choices.some((choice) => choice.label === "Restaurant"),
+);
+check(
+  "open food-place questions reject transport and destinations",
+  !openBoard.choices.some((choice) => ["Car", "School"].includes(choice.label)),
+);
+
 const firstChoice = board.choices[0]!;
 const withImage = applyAssetEvent(board, {
   type: "asset.ready",

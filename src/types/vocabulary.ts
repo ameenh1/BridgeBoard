@@ -22,9 +22,9 @@ export type VocabularyItem = {
 };
 
 /**
- * The restricted view handed to the classifier. Note the absence of
- * `spokenPhrase` — the model never sees the words we will speak, so it cannot
- * be steered into rewriting them.
+ * The restricted catalog view handed to the classifier. Note the absence of
+ * `spokenPhrase` — catalog phrases stay application-owned even when the
+ * classifier also proposes a separate open-ended concept.
  */
 export type AIVocabularyOption = {
   id: string;

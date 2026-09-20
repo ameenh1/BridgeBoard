@@ -161,7 +161,6 @@ describe("removed full board", () => {
   it("is not available in the main navigation", async () => {
     await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
-
     expect(screen.queryByRole("button", { name: /full board/i })).toBeNull();
   });
 });

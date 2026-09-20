@@ -15,11 +15,15 @@ import { MAX_SPEECH_RATE, MIN_SPEECH_RATE } from "@/types/profile";
 export const ChildProfileSchema = z.object({
   id: z.string().min(1).max(100),
   displayName: z.string().max(60).default(""),
-  maxChoices: z.union([z.literal(2), z.literal(4), z.literal(6)]),
+  maxChoices: z.union([z.literal(2), z.literal(4), z.literal(6), z.literal(8)]),
   visuals: z.enum(["photos_first", "mixed", "icons_first"]),
   speechEnabled: z.boolean(),
   quietMode: z.boolean(),
   textLabelsEnabled: z.boolean(),
+  noiseGateDb: z
+    .union([z.literal(-50), z.literal(-40), z.literal(-30), z.literal(-20)])
+    .nullable()
+    .default(null),
   buttonSize: z.enum(["standard", "large"]).default("large"),
   speechRate: z.number().min(MIN_SPEECH_RATE).max(MAX_SPEECH_RATE).default(0.9),
   voiceURI: z.string().max(300).optional(),

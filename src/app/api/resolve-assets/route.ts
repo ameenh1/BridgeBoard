@@ -3,6 +3,7 @@ import { verifyAssetStreamToken } from "@/lib/assets/assetToken";
 import { createOpenAIAssetProviders } from "@/lib/assets/openaiAssetProviders";
 import { resolveAssetBatch } from "@/lib/assets/resolveVisualAssets";
 import { createOptionalSupabaseAssetCache } from "@/lib/assets/supabaseAssetCache";
+import { MAX_AI_VISUAL_ASSETS } from "@/lib/assets/visualRequests";
 import type { AssetStreamEvent } from "@/lib/assets/types";
 
 export const runtime = "nodejs";
@@ -10,7 +11,7 @@ export const maxDuration = 60;
 
 const BodySchema = z.object({
   token: z.string().min(1).max(20_000),
-  skipAssetKeys: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(6).optional(),
+  skipAssetKeys: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(MAX_AI_VISUAL_ASSETS).optional(),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -53,9 +54,9 @@ export async function POST(request: Request): Promise<Response> {
         providers: createOpenAIAssetProviders(),
         sharedCache: createOptionalSupabaseAssetCache(),
         signal: abortController.signal,
-        // One worker per tile up to the per-board maximum, so a four-answer
-        // board resolves in a single generation round instead of two.
-        concurrency: 6,
+        // One worker per tile up to the per-board maximum, so an eight-answer
+        // board resolves in a single generation round.
+        concurrency: MAX_AI_VISUAL_ASSETS,
         onResolution(resolution) {
           write({
             type: resolution.status === "ready" ? "asset.ready" : "asset.unavailable",

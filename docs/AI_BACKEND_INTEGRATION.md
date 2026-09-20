@@ -7,8 +7,8 @@ written down rather than left implicit in the component.
 
 **Two rules the UI must not break:**
 
-1. Keep the last committed board mounted and interactive while a new question
-   is being classified.
+1. Keep the last committed board mounted and interactive while a new caregiver
+   message is being classified.
 2. Update visuals by `assetKey`. Never clear the board to show a picture
    arriving.
 
@@ -43,6 +43,22 @@ label, spoken phrase, icon and working selection action. `visual.status:
 A pending visual that no stream will ever deliver is downgraded to
 `unavailable` before the response is sent, so a tile never spins forever.
 
+For `open_ended` questions, the classifier may return up to eight
+`suggestedAnswerConcepts` in addition to catalog IDs. These are untrusted,
+short answer phrases rather than selections: the server validates and
+deduplicates them, creates the spoken phrase locally, and filters catalog
+choices by topic. For example, `food_places` may offer restaurant, café,
+fast food, picnic, or home, but a destination such as car or school is not
+accepted as a place-to-eat answer.
+
+For `statement` messages, the classifier may return up to four
+`suggestedResponseConcepts`. These are also untrusted options, not selections.
+The application allows short acknowledgments and first-person response phrases
+such as `Yes`, `Not yet`, `I need more time`, or `I want to go`, rejects vague,
+unsafe, sentence-like, and URL-shaped output, and creates the spoken phrase
+locally. A statement response board is capped at four new choices so the
+append-only eight-choice gallery retains earlier answers.
+
 ## Board session controller
 
 ```ts
@@ -64,8 +80,8 @@ realtime.onFinalTranscript = ({ transcript }) => {
 The controller:
 
 - keeps the committed board and support actions usable during classification;
-- treats the AI side as an append-only gallery: the new question's answers go
-  on top and earlier answers move down (up to 8 visible), so generated pictures
+- treats the AI side as an append-only gallery: the new message's answers or
+  responses go on top and earlier answers move down (up to 8 visible), so generated pictures
   survive later questions; the quick answers ride along separately and never
   count against that cap;
 - merges unchanged choices by `choiceKey` and retains ready images;
@@ -126,5 +142,5 @@ microphone open ahead of an explicit request — and `stop()` it to close the
 peer connection and release the tracks.
 
 `start()` reports `permission_denied`, `not_supported`, `connection` or
-`session` through `onError` and also rejects. Either way the typed question
+`session` through `onError` and also rejects. Either way the typed message
 box must stay usable.

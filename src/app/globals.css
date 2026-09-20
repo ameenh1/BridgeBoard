@@ -1236,6 +1236,53 @@ body {
   margin: 4px 0 0;
 }
 
+.noise-gate-control {
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid #c5e5dc;
+  border-radius: 14px;
+  margin-top: 12px;
+  padding: 10px 14px 9px;
+}
+
+.noise-gate-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.noise-gate-heading label {
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.noise-gate-heading output {
+  color: var(--green-deep);
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.noise-gate-control input[type="range"] {
+  accent-color: var(--green);
+  display: block;
+  min-height: var(--tap-min);
+  width: 100%;
+}
+
+.noise-gate-control input[type="range"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.noise-gate-control p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 2px 0 0;
+}
+
 .ai-view .heard-question {
   font-size: 20px;
   font-weight: 700;
@@ -1377,6 +1424,7 @@ body {
   min-height: 0;
 }
 
+/* The gallery keeps up to eight generated choices above the quick answers. */
 .choice-grid--ai,
 .choice-grid--quick {
   gap: 10px;

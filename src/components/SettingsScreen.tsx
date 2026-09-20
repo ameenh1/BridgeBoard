@@ -62,11 +62,12 @@ export function SettingsScreen({
           </span>
           <select
             value={String(profile.maxChoices)}
-            onChange={(event) => onChange({ maxChoices: Number(event.target.value) as 2 | 4 | 6 })}
+            onChange={(event) => onChange({ maxChoices: Number(event.target.value) as 2 | 4 | 6 | 8 })}
           >
             <option value="2">2</option>
             <option value="4">4</option>
             <option value="6">6</option>
+            <option value="8">8</option>
           </select>
         </label>
 

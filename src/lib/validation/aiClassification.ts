@@ -3,6 +3,8 @@ import { z } from "zod";
 export const AIClassificationSchema = z.object({
   questionType: z.enum([
     "forced_choice",
+    "open_ended",
+    "statement",
     "feelings_needs",
     "yes_no",
     "body_needs",
@@ -13,6 +15,7 @@ export const AIClassificationSchema = z.object({
 
   topic: z.enum([
     "food",
+    "food_places",
     "drink",
     "feelings",
     "body_needs",
@@ -34,6 +37,12 @@ export const AIClassificationSchema = z.object({
 
   /** Concrete phrases copied from the caregiver utterance, not invented labels. */
   explicitVisualConcepts: z.array(z.string().trim().min(1).max(80)).max(8).default([]),
+
+  /** Short answer concepts proposed for a clear open-ended question. */
+  suggestedAnswerConcepts: z.array(z.string().trim().min(1).max(80)).max(8).default([]),
+
+  /** Short response phrases proposed for a caregiver statement. */
+  suggestedResponseConcepts: z.array(z.string().trim().min(1).max(80)).max(4).default([]),
 
   supportActions: z
     .array(

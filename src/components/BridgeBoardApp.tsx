@@ -101,6 +101,7 @@ function BridgeBoardShell() {
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
+  const [microphoneNotice, setMicrophoneNotice] = useState<string>();
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
   const online = useOnlineStatus();
@@ -203,7 +204,7 @@ function BridgeBoardShell() {
     (choice: RenderableChoice) => {
       // Selection lives in the controller so it survives the next commit.
       boardController.current?.selectChoice(choice.choiceKey);
-      say(choice.spokenPhrase);
+      say(choice.label);
     },
     [say],
   );
@@ -237,9 +238,12 @@ function BridgeBoardShell() {
 
   const startListening = useCallback(async () => {
     setMicrophoneError(undefined);
+    setMicrophoneNotice(undefined);
     const controller = createRealtimeTranscriptionController({
+      noiseGateDb: profileRef.current.noiseGateDb,
       onStateChange: setRealtimeState,
       onError: (error) => setMicrophoneError(microphoneMessage(error.code)),
+      onProcessingNotice: setMicrophoneNotice,
       onPartialTranscript: ({ transcript }) =>
         boardController.current?.acceptPartialTranscript(transcript),
       onFinalTranscript: ({ transcript }) =>
@@ -411,9 +415,11 @@ function BridgeBoardShell() {
             realtimeState={realtimeState}
             online={online}
             microphoneError={microphoneError}
+            microphoneNotice={microphoneNotice}
             onSubmitQuestion={submitQuestion}
             onResetChoices={resetAiChoices}
             onToggleListening={toggleListening}
+            onNoiseGateChange={(noiseGateDb) => patchProfile({ noiseGateDb })}
             onChoose={chooseRenderable}
           />
         ) : null}

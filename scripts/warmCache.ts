@@ -69,7 +69,7 @@ async function warmOne(baseUrl: string, question: string): Promise<Outcome[]> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       questionText: question,
-      profile: { id: "cache-warm", maxChoices: 6, visuals: "photos_first" },
+      profile: { id: "cache-warm", maxChoices: 8, visuals: "photos_first" },
     }),
   });
   if (!response.ok) throw new Error(`classify returned ${response.status}`);

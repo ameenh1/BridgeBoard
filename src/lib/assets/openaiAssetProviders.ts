@@ -94,7 +94,9 @@ export function createOpenAIAssetProviders(options: Options = {}): AssetProvider
 
   return {
     async discoverWebImage(request, signal) {
-      if (!client || process.env.AI_ASSET_SEARCH_ENABLED === "false") return null;
+      // Web search is an explicitly paid capability. Keep it opt-in so a
+      // missing environment variable can never silently enable it.
+      if (!client || process.env.AI_ASSET_SEARCH_ENABLED !== "true") return null;
       // The documented image-search fields landed before the stable SDK type.
       // Keep the compatibility cast isolated to this exact wire object.
       const tool = {
@@ -156,7 +158,7 @@ export function createOpenAIAssetProviders(options: Options = {}): AssetProvider
 export function hasAssetProviders(): boolean {
   return Boolean(
     process.env.OPENAI_API_KEY &&
-      (process.env.AI_ASSET_SEARCH_ENABLED !== "false" ||
+      (process.env.AI_ASSET_SEARCH_ENABLED === "true" ||
         process.env.AI_IMAGE_GENERATION_ENABLED !== "false"),
   );
 }

@@ -210,4 +210,18 @@ describe("ai gallery", () => {
     expect(ai).toContain("old0");
     expect(ai).not.toContain("old7");
   });
+
+  it("keeps statement responses to four new tiles while retaining gallery history", () => {
+    const olds = Array.from({ length: 5 }, (_, index) => choice(`old${index}`, "ready"));
+    const responses = ["yes", "no", "not-yet", "more-time"].map((id) => choice(id));
+    const first = board("00000000-0000-4000-8000-000000000016", olds);
+    const second = board("00000000-0000-4000-8000-000000000017", responses);
+    const merged = mergeCommittedBoard(first, second);
+    const ai = merged.choices.slice(4).map((item) => item.id);
+
+    expect(ai).toHaveLength(8);
+    expect(ai.slice(0, 4)).toEqual(["yes", "no", "not-yet", "more-time"]);
+    expect(ai).toContain("old0");
+    expect(ai).not.toContain("old4");
+  });
 });
