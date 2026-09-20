@@ -137,6 +137,23 @@ describe("persistent quick answers", () => {
     expect(ids.slice(0, 4)).toEqual(["core_yes", "core_no", "core_more", "core_all_done"]);
     expect(ids).toContain("waffles");
   });
+
+  it("resets generated choices without removing the default answers", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({
+        board: board("00000000-0000-4000-8000-000000000006", [choice("waffles", "ready")]),
+      }),
+    );
+    const controller = createBoardSessionController({ fetchImpl });
+    await controller.submitQuestion("Waffles?");
+    controller.resetAiChoices();
+    expect(controller.getState().board?.choices.map((item) => item.id)).toEqual([
+      "core_yes",
+      "core_no",
+      "core_more",
+      "core_all_done",
+    ]);
+  });
 });
 
 describe("ai gallery", () => {

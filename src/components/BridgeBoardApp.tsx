@@ -214,6 +214,10 @@ function BridgeBoardShell() {
     void boardController.current?.submitQuestion(questionText);
   }, []);
 
+  const resetAiChoices = useCallback(() => {
+    boardController.current?.resetAiChoices();
+  }, []);
+
   const stopListening = useCallback(async () => {
     const controller = realtimeController.current;
     realtimeController.current = null;
@@ -413,6 +417,7 @@ function BridgeBoardShell() {
             online={online}
             microphoneError={microphoneError}
             onSubmitQuestion={submitQuestion}
+            onResetChoices={resetAiChoices}
             onToggleListening={toggleListening}
             onChoose={chooseRenderable}
           />

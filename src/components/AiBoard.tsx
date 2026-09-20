@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Mic, MicOff, Send, Sparkles, Volume2, WifiOff,
+  Mic, MicOff, RotateCcw, Send, Sparkles, Volume2, WifiOff,
 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
@@ -19,6 +19,7 @@ export function AiBoard({
   online,
   microphoneError,
   onSubmitQuestion,
+  onResetChoices,
   onToggleListening,
   onChoose,
 }: {
@@ -29,6 +30,7 @@ export function AiBoard({
   online: boolean;
   microphoneError?: string;
   onSubmitQuestion: (questionText: string) => void;
+  onResetChoices: () => void;
   onToggleListening: () => void;
   onChoose: (choice: RenderableChoice) => void;
 }) {
@@ -171,22 +173,40 @@ export function AiBoard({
           above the always-available default answers. */}
       {board ? (
         <div className="ai-choice-area">
-          <div className="choice-grid choice-grid--ai">
-            {aiChoices.map((choice) => renderChoice(choice))}
-            {Array.from({ length: Math.max(0, 4 - aiChoices.length) }).map((_, index) => (
-              <div
-                className="ai-choice-slot"
-                key={`empty-ai-slot-${index}`}
-                aria-label="Empty caregiver choice slot"
+          <div className="ai-generated-row">
+            <div className="ai-generated-header">
+              <span className="ai-generated-label">Question choices</span>
+              <button
+                type="button"
+                className="ai-reset-button"
+                onClick={onResetChoices}
               >
-                <Sparkles aria-hidden="true" size={24} />
-                <span>Waiting for a question</span>
+                <RotateCcw aria-hidden="true" size={16} />
+                Reset choices
+              </button>
+            </div>
+            <div className="ai-generated-grid">
+              <div className="choice-grid choice-grid--ai">
+                {aiChoices.map((choice) => renderChoice(choice))}
+                {Array.from({ length: Math.max(0, 4 - aiChoices.length) }).map((_, index) => (
+                  <div
+                    className="ai-choice-slot"
+                    key={`empty-ai-slot-${index}`}
+                    aria-label="Empty caregiver choice slot"
+                  >
+                    <Sparkles aria-hidden="true" size={24} />
+                    <span>Waiting for a question</span>
+                  </div>
+                ))}
               </div>
-            ))}
+              {session.isRefreshing ? (
+                <div className="ai-loading-overlay" role="status" aria-live="polite">
+                  <span className="ai-loading-spinner" aria-hidden="true" />
+                  <strong>Updating choices…</strong>
+                </div>
+              ) : null}
+            </div>
           </div>
-          {session.isRefreshing ? (
-            <p className="ai-row-hint">Updating choices…</p>
-          ) : null}
           <div className="choice-grid choice-grid--quick" aria-label="Quick answers">
             {quickChoices.map((choice) => renderChoice(choice))}
           </div>

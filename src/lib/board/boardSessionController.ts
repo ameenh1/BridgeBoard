@@ -29,6 +29,7 @@ export type BoardSessionState = {
 export type BoardSessionController = {
   getState(): BoardSessionState;
   selectChoice(choiceKey: string): void;
+  resetAiChoices(): void;
   acceptPartialTranscript(transcript: string): void;
   acceptFinalTranscript(transcript: string): void;
   submitQuestion(questionText: string): Promise<void>;
@@ -325,6 +326,21 @@ export function createBoardSessionController(options: BoardSessionOptions = {}):
     getState: () => state,
     selectChoice(choiceKey) {
       publish({ ...state, selectedChoiceKey: choiceKey });
+    },
+    resetAiChoices() {
+      classificationController?.abort();
+      classificationController = undefined;
+      for (const running of streams) running.controller.abort();
+      streams.clear();
+      const board = createWelcomeBoard();
+      publish({
+        ...state,
+        board,
+        isRefreshing: false,
+        partialTranscript: "",
+        selectedChoiceKey: undefined,
+        lastError: undefined,
+      });
     },
     acceptPartialTranscript(transcript) {
       publish({ ...state, partialTranscript: transcript });
