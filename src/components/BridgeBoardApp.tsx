@@ -48,7 +48,6 @@ import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
 import { PhotosScreen } from "./PhotosScreen";
-import { SpokenBar } from "./SpokenBar";
 import { HistoryScreen } from "./HistoryScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
@@ -447,8 +446,6 @@ function BridgeBoardShell() {
         session and any in-flight asset streams live in the shell, so coming
         back to AI AAC shows the same board with the same resolved pictures.
       */}
-      <SpokenBar phrase={lastSpoken} muted={!profile.speechEnabled || profile.quietMode} />
-
       <div
         className="app-content"
         ref={contentRef}
