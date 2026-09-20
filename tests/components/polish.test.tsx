@@ -167,9 +167,9 @@ describe("focus and announcement on view change", () => {
     await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
-    await user.click(screen.getByRole("button", { name: /history/i }));
+    await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
-    const region = await screen.findByRole("region", { name: "History" });
+    const region = await screen.findByRole("region", { name: "AI AAC" });
     // A keyboard or switch user continues from here rather than the top of
     // the document, and a screen reader reads the region's name.
     expect(document.activeElement).toBe(region);

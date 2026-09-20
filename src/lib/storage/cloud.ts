@@ -1,7 +1,6 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import type { CommunicationHistoryEntry } from "./history";
 import type { ChildProfile } from "@/types/profile";
 import { ChildProfileSchema } from "@/lib/validation/profileSchema";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -31,12 +30,6 @@ export async function signOutCloud(): Promise<void> {
   await getSupabaseBrowserClient()?.auth.signOut();
 }
 
-export async function clearCloudHistory(userId: string): Promise<void> {
-  const client = getSupabaseBrowserClient();
-  if (!client) return;
-  const { error } = await client.from("communication_history").delete().eq("user_id", userId);
-  if (error) throw error;
-}
 
 type ProfileRow = { id: string; user_id: string; settings: unknown };
 
@@ -66,38 +59,4 @@ export async function saveCloudProfile(userId: string, profile: ChildProfile): P
   return { ...profile, id: data.id };
 }
 
-export async function saveCloudHistory(userId: string, profileId: string | undefined, entry: CommunicationHistoryEntry): Promise<void> {
-  const client = getSupabaseBrowserClient();
-  if (!client) return;
-  const { error } = await client.from("communication_history").insert({
-    user_id: userId,
-    profile_id: profileId ?? null,
-    entry_id: entry.id,
-    board_type: entry.boardType,
-    question_text: entry.questionText ?? null,
-    selected_vocabulary_id: entry.selectedVocabularyId ?? null,
-    selected_label: entry.selectedLabel ?? null,
-    created_at: entry.timestamp,
-  });
-  if (error) throw error;
-}
 
-export async function loadCloudHistory(userId: string): Promise<CommunicationHistoryEntry[]> {
-  const client = getSupabaseBrowserClient();
-  if (!client) return [];
-  const { data, error } = await client
-    .from("communication_history")
-    .select("entry_id,created_at,question_text,board_type,selected_vocabulary_id,selected_label")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error) throw error;
-  return (data ?? []).map((row) => ({
-    id: row.entry_id,
-    timestamp: row.created_at,
-    questionText: row.question_text ?? undefined,
-    boardType: row.board_type,
-    selectedVocabularyId: row.selected_vocabulary_id ?? undefined,
-    selectedLabel: row.selected_label ?? undefined,
-  })) as CommunicationHistoryEntry[];
-}

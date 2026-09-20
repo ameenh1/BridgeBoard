@@ -174,17 +174,6 @@ export function SettingsScreen({
           </select>
         </label>
 
-        <label className="toggle-row">
-          <span>
-              <strong>Keep history</strong>
-            <small>Saved to your account when you are signed in</small>
-          </span>
-          <input
-            type="checkbox"
-            checked={profile.historyEnabled}
-            onChange={(event) => onChange({ historyEnabled: event.target.checked })}
-          />
-        </label>
       </div>
 
       <button className="danger-button" type="button" onClick={onResetProfile}>

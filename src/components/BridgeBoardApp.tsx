@@ -13,22 +13,13 @@ import {
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
 import { cancelSpeech, speak } from "@/lib/speech/speak";
 import {
-  appendHistory,
-  clearHistory,
-  loadHistory,
-  type CommunicationHistoryEntry,
-} from "@/lib/storage/history";
-import {
   clearSettings,
   loadSettings,
   updateSettings,
 } from "@/lib/storage/settings";
 import {
-  clearCloudHistory,
   getCurrentUser,
-  loadCloudHistory,
   loadCloudProfile,
-  saveCloudHistory,
   saveCloudProfile,
   signOutCloud,
 } from "@/lib/storage/cloud";
@@ -43,13 +34,11 @@ import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
-import type { VocabularyItem } from "@/types/vocabulary";
 import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
 import { PhotosScreen } from "./PhotosScreen";
 import { SpokenBar } from "./SpokenBar";
-import { HistoryScreen } from "./HistoryScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
@@ -57,13 +46,12 @@ import { ACTIONS } from "./icons";
 import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
-type View = "board" | "ai" | "history" | "caregiver" | "settings" | "photos";
+type View = "board" | "ai" | "caregiver" | "settings" | "photos";
 
 /** Named so a screen reader announces the view when focus moves into it. */
 const VIEW_LABELS: Record<View, string> = {
   board: "Default AAC board",
   ai: "AI AAC",
-  history: "History",
   caregiver: "Caregiver",
   settings: "Settings",
   photos: "Personal photos",
@@ -103,7 +91,7 @@ export function BridgeBoardApp() {
  *
  * Both controllers are created here and torn down only when this component
  * unmounts or the local profile is exited. That is deliberate: the board
- * session has to survive a trip to History and back, because discarding it
+ * session has to survive moving between screens, because discarding it
  * would throw away the active board and every picture already resolved for it.
  */
 function BridgeBoardShell() {
@@ -111,7 +99,6 @@ function BridgeBoardShell() {
   const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
-  const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
   const [photos, setPhotos] = useState<PersonalPhoto[]>(() => loadPersonalPhotos());
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
@@ -132,17 +119,13 @@ function BridgeBoardShell() {
   const profileRef = useRef(profile);
 
   const openAccount = useCallback(async (user: { id: string; email?: string | null }) => {
-    const [cloudProfile, cloudHistory] = await Promise.all([
+    const [cloudProfile] = await Promise.all([
       loadCloudProfile(user.id),
-      loadCloudHistory(user.id),
     ]);
     const nextProfile = cloudProfile ?? DEFAULT_PROFILE;
     setAuthUser({ id: user.id, email: user.email ?? "" });
     setProfile(nextProfile);
     updateSettings(nextProfile);
-    setHistory(cloudHistory);
-    clearHistory();
-    for (const entry of cloudHistory) appendHistory(entry, true);
     setStage(cloudProfile ? "profile" : "setup");
     setView("board");
   }, []);
@@ -218,41 +201,15 @@ function BridgeBoardShell() {
     if (patch.quietMode || patch.speechEnabled === false) cancelSpeech();
   }, [authUser]);
 
-  const record = useCallback(
-    (entry: Omit<CommunicationHistoryEntry, "id" | "timestamp">) => {
-      const current = profileRef.current;
-      if (!current.historyEnabled) return;
-      appendHistory(entry, true);
-      setHistory(loadHistory());
-      if (authUser) {
-        const full = loadHistory().at(-1);
-        if (full) void saveCloudHistory(authUser.id, profileRef.current.id, full);
-      }
-    },
-    [authUser],
-  );
 
-  const chooseVocabulary = useCallback(
-    (item: VocabularyItem) => {
-      record({ boardType: "full_board", selectedVocabularyId: item.id, selectedLabel: item.label });
-    },
-    [record],
-  );
 
   const chooseRenderable = useCallback(
     (choice: RenderableChoice) => {
       // Selection lives in the controller so it survives the next commit.
       boardController.current?.selectChoice(choice.choiceKey);
       say(choice.spokenPhrase);
-      const board = boardController.current?.getState().board;
-      record({
-        boardType: board?.boardType ?? "choice",
-        questionText: board?.questionText,
-        selectedVocabularyId: choice.id,
-        selectedLabel: choice.label,
-      });
     },
-    [record, say],
+    [say],
   );
 
   const submitQuestion = useCallback((questionText: string) => {
@@ -316,24 +273,22 @@ function BridgeBoardShell() {
   }, [authUser]);
 
   const resetProfile = useCallback(() => {
-    if (!window.confirm("Reset this profile? Settings, history and personal photos on this device will be erased.")) {
+    if (!window.confirm("Reset this profile? Settings and personal photos on this device will be erased.")) {
       return;
     }
     void stopListening();
     clearSettings();
-    clearHistory();
     clearPersonalPhotos();
     void signOutCloud();
     setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
-    setHistory([]);
     setPhotos([]);
     setStage("login");
     setView("board");
   }, [stopListening]);
 
   /**
-   * Signing out ends the account session only. Settings and history are the
+   * Signing out ends the account session only. Settings are the
    * child's and stay on the device — losing a board configuration because a
    * caregiver signed out of an optional account would be the wrong trade.
    */
@@ -344,13 +299,6 @@ function BridgeBoardShell() {
     setStage("login");
     setView("board");
   }, [stopListening]);
-
-  const clearAllHistory = useCallback(() => {
-    if (!window.confirm("Clear the history saved on this device?")) return;
-    clearHistory();
-    setHistory([]);
-    if (authUser) void clearCloudHistory(authUser.id);
-  }, [authUser]);
 
   if (!authReady) return <main className="boot-screen" aria-busy="true" />;
 
@@ -413,9 +361,6 @@ function BridgeBoardShell() {
           <NavButton active={view === "ai"} onClick={() => setView("ai")}>
             AI AAC
           </NavButton>
-          <NavButton active={view === "history"} onClick={() => setView("history")}>
-            History
-          </NavButton>
         </nav>
 
         <div className="nav-right">
@@ -461,7 +406,6 @@ function BridgeBoardShell() {
             profile={profile}
             photos={photoMap}
             onSpeak={say}
-            onRecord={chooseVocabulary}
           />
         ) : null}
 
@@ -479,13 +423,6 @@ function BridgeBoardShell() {
           />
         ) : null}
 
-        {view === "history" ? (
-          <HistoryScreen
-            entries={history}
-            historyEnabled={profile.historyEnabled}
-            onClear={clearAllHistory}
-          />
-        ) : null}
 
         {view === "caregiver" ? (
           <CaregiverScreen
