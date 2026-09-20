@@ -3,7 +3,6 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ErrorBoundary from "@/app/error";
-import { DEFAULT_PROFILE } from "@/types/profile";
 import { spokenPhrases } from "../setup";
 
 afterEach(cleanup);
@@ -67,17 +66,4 @@ describe("crash recovery", () => {
     getItem.mockRestore();
   });
 
-  it("records nothing to history while recovering", async () => {
-    const user = userEvent.setup();
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const setItem = vi.spyOn(Storage.prototype, "setItem");
-
-    render(<ErrorBoundary error={new Error("boom")} retry={() => undefined} />);
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-
-    // Storage may be what failed; recovery must not risk a second crash.
-    expect(setItem).not.toHaveBeenCalled();
-    expect(DEFAULT_PROFILE.historyEnabled).toBe(true); // not disabled by config
-  });
 });

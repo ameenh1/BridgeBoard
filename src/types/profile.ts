@@ -18,7 +18,6 @@ export type ChildProfile = {
   speechEnabled: boolean;
   quietMode: boolean;
   textLabelsEnabled: boolean;
-  historyEnabled: boolean;
 
   /** Presentation only — never sent to the server. */
   buttonSize: "standard" | "large";
@@ -40,7 +39,6 @@ export const DEFAULT_PROFILE: ChildProfile = {
   speechEnabled: true,
   quietMode: false,
   textLabelsEnabled: true,
-  historyEnabled: true,
   buttonSize: "large",
   speechRate: 0.9,
 };

@@ -21,20 +21,17 @@ export function DefaultBoard({
   profile,
   photos,
   onSpeak,
-  onRecord,
 }: {
   profile: ChildProfile;
   /** Caregiver photos by vocabulary id. These outrank the bundled artwork. */
   photos?: Map<string, string>;
   onSpeak: (phrase: string) => void;
-  onRecord: (item: VocabularyItem) => void;
 }) {
   const rows = useMemo(() => resolveDefaultBoard(), []);
   const [message, setMessage] = useState<VocabularyItem[]>([]);
 
   function selectWord(item: VocabularyItem) {
     setMessage((current) => [...current, item]);
-    onRecord(item);
     onSpeak(item.spokenPhrase);
   }
 

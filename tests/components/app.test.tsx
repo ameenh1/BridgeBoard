@@ -339,24 +339,6 @@ describe("ai board", () => {
     expect(screen.getByRole("button", { name: /waffles/i })).not.toBeDisabled();
   });
 
-  it("survives a trip to History and back", async () => {
-    const user = userEvent.setup();
-    stubFetch([jsonBoard(board([choice("waffles", "a", true)], "Waffles?"))]);
-
-    await enterApp(user);
-    await askFirstQuestion(user);
-    await screen.findByRole("button", { name: /waffles/i });
-    await user.click(screen.getByRole("button", { name: /waffles/i }));
-
-    await user.click(screen.getByRole("button", { name: /history/i }));
-    await screen.findByRole("heading", { name: /^history$/i });
-    await user.click(screen.getByRole("button", { name: /ai aac/i }));
-
-    // Same board, same resolved picture, same selection.
-    const waffles = await screen.findByRole("button", { name: /waffles/i });
-    expect(waffles.getAttribute("aria-pressed")).toBe("true");
-    expect(waffles.querySelector(".choice-visual")?.getAttribute("data-status")).toBe("ready");
-  });
 
   it("switches to the manual board on Full board without waiting for the AI", async () => {
     const user = userEvent.setup();
@@ -387,37 +369,7 @@ describe("settings and history", () => {
     expect(await screen.findByLabelText(/button size/i)).toHaveValue("standard");
   });
 
-  it("records a selection to history and survives a remount", async () => {
-    const user = userEvent.setup();
-    await enterApp(user);
 
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-
-    cleanup();
-    render(<BridgeBoardApp />);
-    await screen.findByRole("heading", { name: /who is communicating today/i });
-    await user.click(screen.getByRole("button", { name: /cha/i }));
-    await screen.findByRole("navigation", { name: /main/i });
-    await user.click(screen.getByRole("button", { name: /history/i }));
-    expect(await screen.findByText("want")).toBeDefined();
-  });
-
-  it("records nothing when history is turned off", async () => {
-    const user = userEvent.setup();
-    cloudState.user = { id: "u1", email: "caregiver@example.com" };
-    cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha", historyEnabled: false };
-    render(<BridgeBoardApp />);
-    await screen.findByRole("heading", { name: /who is communicating today/i });
-    await user.click(screen.getByRole("button", { name: /cha/i }));
-    await screen.findByRole("navigation", { name: /main/i });
-
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-
-    await user.click(screen.getByRole("button", { name: /history/i }));
-    expect(await screen.findByText(/no phrases yet/i)).toBeDefined();
-  });
 
   it("silences speech in quiet mode", async () => {
     const user = userEvent.setup();

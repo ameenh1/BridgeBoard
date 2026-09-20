@@ -62,9 +62,6 @@ export default function Error({
         <DefaultBoard
           profile={profile}
           onSpeak={(phrase) => speak(phrase, profile)}
-          // History writes are skipped here: storage may be what failed, and
-          // recording is never worth risking a second crash over.
-          onRecord={() => undefined}
         />
       </div>
     </main>

@@ -164,17 +164,6 @@ export function SetupScreen({
             />
           </label>
 
-          <label className="toggle-row">
-            <span>
-              <strong>Keep history</strong>
-              <small>Saved to your account when you are signed in</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={draft.historyEnabled}
-              onChange={(event) => patch({ historyEnabled: event.target.checked })}
-            />
-          </label>
         </div>
 
         <div className="setup-actions">
