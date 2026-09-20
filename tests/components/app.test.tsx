@@ -92,6 +92,12 @@ function stubFetch(queue: Array<() => Promise<Response>>) {
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
+    if (url.includes("/api/speech")) {
+      return new Response(new Blob(["test-audio"]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      });
+    }
     /**
      * Answered here rather than from the queue: the shell probes for an
      * existing session on mount, and letting that probe consume a queued

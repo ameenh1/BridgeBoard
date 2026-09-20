@@ -11,7 +11,7 @@ import {
   type RealtimeTranscriptionController,
 } from "@/lib/speech/realtimeTranscription";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
-import { cancelSpeech, speak } from "@/lib/speech/speak";
+import { cancelSpeech, speakNatural } from "@/lib/speech/speak";
 import {
   appendHistory,
   clearHistory,
@@ -207,7 +207,7 @@ function BridgeBoardShell() {
     const text = phrase.trim();
     if (!text) return;
     setLastSpoken(text);
-    speak(text, profileRef.current);
+    void speakNatural(text, profileRef.current);
   }, []);
 
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
