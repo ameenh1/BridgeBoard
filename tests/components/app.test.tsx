@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeBoardApp } from "@/components/BridgeBoardApp";
@@ -237,7 +237,7 @@ describe("default board", () => {
     await user.click(within(core).getByRole("button", { name: /^I$/ }));
     await user.click(within(core).getByRole("button", { name: /^want$/ }));
 
-    // Tapping a tile speaks that tile's authored phrase.
+    // Tapping a tile speaks the visible label.
     await waitFor(() => expect(speechTexts()).toEqual(["I", "want"]));
     expect(screen.getByText("2 words")).toBeDefined();
 
@@ -290,6 +290,34 @@ describe("ai board", () => {
     await user.click(screen.getByRole("button", { name: /reset choices/i }));
     await waitFor(() => expect(screen.queryByRole("button", { name: /waffles/i })).toBeNull());
     confirmation.mockRestore();
+  });
+
+  it("speaks the visible AI label instead of the catalog sentence", async () => {
+    const user = userEvent.setup();
+    stubFetch([jsonBoard(board([choice("Read", "read", true)]))]);
+
+    await enterApp(user);
+    await askFirstQuestion(user);
+    await user.click(await screen.findByRole("button", { name: /^Read$/i }));
+
+    await waitFor(() => expect(speechTexts().at(-1)).toBe("Read"));
+  });
+
+  it("persists the AI microphone threshold and shows its helper text", async () => {
+    const user = userEvent.setup();
+    await enterApp(user);
+    await user.click(screen.getByRole("button", { name: /ai aac/i }));
+
+    const slider = screen.getByRole("slider", { name: /noise filter threshold/i });
+    expect(slider).toHaveValue("0");
+    fireEvent.change(slider, { target: { value: "2" } });
+
+    expect(slider).toHaveValue("2");
+    expect(screen.getByText("−40 dBFS")).toBeDefined();
+    expect(JSON.parse(window.localStorage.getItem("bridgeboard.profile.v1")!).noiseGateDb).toBe(-40);
+    expect(cloudState.profile?.noiseGateDb).toBe(-40);
+    expect(screen.getByText(/may miss quiet speech/i)).toBeDefined();
+    expect(screen.getByText(/physical distance/i)).toBeDefined();
   });
 
   it("keeps the committed board usable while the next question is pending", async () => {

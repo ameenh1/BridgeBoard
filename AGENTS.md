@@ -19,6 +19,8 @@
 - OpenAI web search results are untrusted input. Validate HTTPS and every redirect, allowed hosts, byte limits, MIME and magic bytes, then decode and re-encode before display or caching.
 - Paid web image search is opt-in: require `AI_ASSET_SEARCH_ENABLED=true`; keep local and example defaults false so an unset flag cannot trigger searches.
 - Use the unified Realtime WebRTC endpoint from the server route. The browser may send SDP but must never receive the standard OpenAI API key.
+- Catalog `spokenPhrase` values may be sentence-style while tiles show short labels; direct tile speech uses the visible label. Browser `noiseSuppression` is Boolean and unevenly supported, so the optional dBFS voice gate stays local, defaults off, and falls back without blocking the board.
+- Testing Library does not expose `screen.getByOutput` in this dependency set; use supported role or text queries for output assertions.
 
 ## Current integration note
 

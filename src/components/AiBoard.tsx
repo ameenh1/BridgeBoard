@@ -7,7 +7,7 @@ import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
 import type { RenderableChoice } from "@/types/board";
-import type { ChildProfile } from "@/types/profile";
+import { NOISE_GATE_LEVELS, type ChildProfile, type NoiseGateDb } from "@/types/profile";
 import { ChoiceVisual, VisualAttribution } from "./ChoiceVisual";
 import { AlertCircle, ChoiceIcon } from "./icons";
 import { isPersistentAiChoice } from "@/lib/board/persistentChoices";
@@ -18,9 +18,11 @@ export function AiBoard({
   realtimeState,
   online,
   microphoneError,
+  microphoneNotice,
   onSubmitQuestion,
   onResetChoices,
   onToggleListening,
+  onNoiseGateChange,
   onChoose,
 }: {
   session: BoardSessionState;
@@ -29,14 +31,21 @@ export function AiBoard({
   /** False means the AI side cannot work, whatever else is configured. */
   online: boolean;
   microphoneError?: string;
+  microphoneNotice?: string;
   onSubmitQuestion: (questionText: string) => void;
   onResetChoices: () => void;
   onToggleListening: () => void;
+  onNoiseGateChange: (value: NoiseGateDb) => void;
   onChoose: (choice: RenderableChoice) => void;
 }) {
   const [question, setQuestion] = useState("");
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
+  const noiseGateIndex = Math.max(
+    0,
+    NOISE_GATE_LEVELS.findIndex((level) => level.value === profile.noiseGateDb),
+  );
+  const noiseGateLevel = NOISE_GATE_LEVELS[noiseGateIndex] ?? NOISE_GATE_LEVELS[0];
   // The gallery holds up to eight AI suggestions. Quick answers remain in a
   // separate row and never count against that gallery.
   const aiChoices = (board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? []).slice(0, 8);
@@ -50,13 +59,7 @@ export function AiBoard({
         type="button"
         className={`choice-card choice-card--dense${isPersistentAiChoice(choice) ? " choice-card--quick is-persistent" : ""}${selected ? " is-selected" : ""}`}
         aria-pressed={selected}
-        // When word labels are off and the spoken phrase differs from the
-        // visible label, announce what tapping will actually say.
-        aria-label={
-          !profile.textLabelsEnabled && choice.spokenPhrase !== choice.label
-            ? choice.spokenPhrase
-            : undefined
-        }
+        aria-label={profile.textLabelsEnabled ? undefined : choice.label}
         onClick={() => onChoose(choice)}
       >
         <ChoiceVisual
@@ -141,6 +144,33 @@ export function AiBoard({
             )}
           </p>
         </div>
+        <div className="noise-gate-control">
+          <div className="noise-gate-heading">
+            <label htmlFor="noise-gate-threshold">Noise filter threshold</label>
+            <output htmlFor="noise-gate-threshold">{noiseGateLevel.label}</output>
+          </div>
+          <input
+            id="noise-gate-threshold"
+            type="range"
+            min={0}
+            max={NOISE_GATE_LEVELS.length - 1}
+            step={1}
+            value={noiseGateIndex}
+            disabled={listening}
+            aria-valuetext={`${noiseGateLevel.label}, ${noiseGateLevel.description}`}
+            aria-describedby="noise-gate-help"
+            onChange={(event) =>
+              onNoiseGateChange(
+                NOISE_GATE_LEVELS[Number(event.target.value)]?.value ?? null,
+              )
+            }
+          />
+          <p id="noise-gate-help">
+            Higher settings pass only louder sounds and may miss quiet speech. The
+            setting applies the next time you listen. It cannot reliably determine
+            physical distance from the microphone.
+          </p>
+        </div>
         </div>
         </div>
       </section>
@@ -160,6 +190,12 @@ export function AiBoard({
         <p className="inline-alert" role="alert">
           <AlertCircle aria-hidden="true" size={18} /> {microphoneError} You can still
           type the message above.
+        </p>
+      ) : null}
+
+      {microphoneNotice ? (
+        <p className="board-notice" role="status">
+          <AlertCircle aria-hidden="true" size={18} /> {microphoneNotice}
         </p>
       ) : null}
 

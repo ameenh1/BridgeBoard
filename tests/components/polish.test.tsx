@@ -171,7 +171,7 @@ describe("full board", () => {
     const people = await screen.findByRole("region", { name: "People" });
     await user.click(within(people).getByRole("button", { name: /^Mom$/ }));
 
-    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want Mom."));
+    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("Mom"));
   });
 
   it("is where the Full board support action goes", async () => {
@@ -194,6 +194,6 @@ describe("full board", () => {
     await user.click(screen.getByRole("button", { name: /full board/i }));
     const places = await screen.findByRole("region", { name: "Places" });
     await user.click(within(places).getByRole("button", { name: /^Home$/ }));
-    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want to go home."));
+    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("Home"));
   });
 });

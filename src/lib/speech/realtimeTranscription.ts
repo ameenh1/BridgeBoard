@@ -1,6 +1,8 @@
 "use client";
 
 import type { RealtimeTranscript, RealtimeTranscriptionState } from "./types";
+import { createNoiseGateStream, type NoiseGateStream } from "./noiseGate";
+import type { NoiseGateDb } from "@/types/profile";
 
 export type RealtimeTranscriptionError = {
   code: "not_supported" | "permission_denied" | "connection" | "session";
@@ -11,12 +13,15 @@ export type RealtimeTranscriptionOptions = {
   sessionEndpoint?: string;
   fetchImpl?: typeof fetch;
   peerConnectionConstructor?: typeof RTCPeerConnection;
+  audioContextConstructor?: new () => AudioContext;
   mediaStream?: MediaStream;
+  noiseGateDb?: NoiseGateDb;
   connectionTimeoutMs?: number;
   onPartialTranscript?: (transcript: RealtimeTranscript) => void;
   onFinalTranscript?: (transcript: RealtimeTranscript) => void;
   onStateChange?: (state: RealtimeTranscriptionState) => void;
   onError?: (error: RealtimeTranscriptionError) => void;
+  onProcessingNotice?: (message: string) => void;
 };
 
 export type RealtimeTranscriptionController = {
@@ -35,6 +40,8 @@ export function createRealtimeTranscriptionController(
   let peer: RTCPeerConnection | null = null;
   let channel: RTCDataChannel | null = null;
   let stream: MediaStream | null = options.mediaStream ?? null;
+  let processedStream: MediaStream | null = null;
+  let noiseGate: NoiseGateStream | null = null;
   let state: RealtimeTranscriptionState = "idle";
   const partials = new Map<string, string>();
 
@@ -49,9 +56,13 @@ export function createRealtimeTranscriptionController(
   const cleanup = async (nextState?: RealtimeTranscriptionState) => {
     channel?.close();
     peer?.close();
+    await noiseGate?.stop();
+    for (const track of processedStream?.getTracks() ?? []) track.stop();
     for (const track of stream?.getTracks() ?? []) track.stop();
     channel = null;
     peer = null;
+    noiseGate = null;
+    processedStream = null;
     stream = null;
     partials.clear();
     if (nextState) setState(nextState);
@@ -93,7 +104,24 @@ export function createRealtimeTranscriptionController(
 
       setState("connecting");
       try {
-        stream ??= await navigator.mediaDevices.getUserMedia({ audio: true });
+        const thresholdEnabled = options.noiseGateDb !== null && options.noiseGateDb !== undefined;
+        stream ??= await navigator.mediaDevices.getUserMedia({
+          audio: thresholdEnabled ? { noiseSuppression: true } : true,
+        });
+        if (thresholdEnabled && options.noiseGateDb !== null && options.noiseGateDb !== undefined) {
+          noiseGate = await createNoiseGateStream(
+            stream,
+            options.noiseGateDb,
+            options.audioContextConstructor,
+          );
+          if (noiseGate) {
+            processedStream = noiseGate.stream;
+          } else {
+            options.onProcessingNotice?.(
+              "The voice threshold is unavailable in this browser. Listening still works without it.",
+            );
+          }
+        }
         peer = new Peer();
         channel = peer.createDataChannel("oai-events");
         channel.addEventListener("open", () => setState("connected"));
@@ -113,7 +141,8 @@ export function createRealtimeTranscriptionController(
             report({ code: "connection", message: "Realtime connection failed." });
           }
         };
-        for (const track of stream.getTracks()) peer.addTrack(track, stream);
+        const outboundStream = processedStream ?? stream;
+        for (const track of outboundStream.getTracks()) peer.addTrack(track, outboundStream);
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
 
