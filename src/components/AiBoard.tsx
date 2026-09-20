@@ -1,8 +1,9 @@
 "use client";
 
 import {
-  Mic, MicOff, RotateCcw, Send, Sparkles, Volume2, WifiOff,
+  Mic, MicOff, RotateCcw, Send, Volume2, WifiOff,
 } from "lucide-react";
+import Image from "next/image";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
@@ -175,7 +176,6 @@ export function AiBoard({
         <div className="ai-choice-area">
           <div className="ai-generated-row">
             <div className="ai-generated-header">
-              <span className="ai-generated-label">Question choices</span>
               <button
                 type="button"
                 className="ai-reset-button"
@@ -194,7 +194,7 @@ export function AiBoard({
                     key={`empty-ai-slot-${index}`}
                     aria-label="Empty caregiver choice slot"
                   >
-                    <Sparkles aria-hidden="true" size={24} />
+                    <Image className="ai-empty-flower" src="/brand/clusiacae.webp" alt="" width={22} height={30} />
                     <span>Waiting for a question</span>
                   </div>
                 ))}

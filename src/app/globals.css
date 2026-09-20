@@ -1376,14 +1376,8 @@ body {
 .ai-generated-header {
   align-items: center;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom: 8px;
-}
-
-.ai-generated-label {
-  color: var(--ink-soft);
-  font-size: 16px;
-  font-weight: 800;
 }
 
 .ai-reset-button {
@@ -1413,6 +1407,13 @@ body {
 
 .ai-generated-grid {
   position: relative;
+}
+
+.ai-empty-flower {
+  height: 30px;
+  object-fit: contain;
+  opacity: 0.3;
+  width: 22px;
 }
 
 .ai-loading-overlay {
