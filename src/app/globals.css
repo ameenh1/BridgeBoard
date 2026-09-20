@@ -162,8 +162,9 @@ body {
 
 .plant-polypodium {
   right: -10%;
-  top: 0;
+  top: -12;
   width: 40%;
+  transform: rotate(220deg);
 }
 
 .plant-split-leaf {
