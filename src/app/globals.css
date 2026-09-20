@@ -1806,3 +1806,85 @@ body {
     flex: 1;
   }
 }
+
+/* What the board just said. Visible as well as audible: a muted tablet, a
+   noisy room or Quiet Mode would otherwise leave a tap with no confirmation. */
+
+.spoken-bar {
+  align-items: center;
+  background: var(--mint-tint);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 clamp(16px, 4vw, 56px);
+  transition: min-height 160ms ease, padding 160ms ease;
+}
+
+.spoken-bar.has-phrase {
+  min-height: 52px;
+  padding: 10px clamp(16px, 4vw, 56px);
+}
+
+.spoken-icon {
+  color: var(--green-text);
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.spoken-label {
+  color: var(--green-text);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.spoken-phrase {
+  flex: 1;
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 700;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The focused view should not draw a ring around the whole page. */
+.app-content:focus {
+  outline: none;
+}
+
+.app-content:focus-visible {
+  outline: 3px solid rgba(97, 179, 121, 0.45);
+  outline-offset: -3px;
+}
+
+.offline-notice {
+  align-items: center;
+  background: #fff8e8;
+  border: 1px solid #efd9a4;
+  border-radius: 10px;
+  color: #7a5b16;
+  display: flex;
+  font-size: 16px;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+}
+
+.listen-button:disabled,
+.ask-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spoken-bar {
+    transition: none;
+  }
+}
