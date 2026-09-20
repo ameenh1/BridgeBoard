@@ -42,7 +42,7 @@ export function AiBoard({
   function renderChoice(choice: RenderableChoice) {
     const selected = session.selectedChoiceKey === choice.choiceKey;
     const showPhrase =
-      profile.textLabelsEnabled && choice.spokenPhrase !== choice.label;
+      profile.textLabelsEnabled && !isPersistentAiChoice(choice) && choice.spokenPhrase !== choice.label;
     return (
       <button
         key={choice.choiceKey}
