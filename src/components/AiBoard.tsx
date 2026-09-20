@@ -102,11 +102,12 @@ export function AiBoard({
           title={!online ? "Needs a network connection" : listening ? "Stop listening" : "Start listening"}
         >
           <span className="ai-listen-icon" aria-hidden="true">
-            {listening ? <MicOff size={38} /> : <Mic size={38} />}
+            {listening ? <MicOff size={48} /> : <Mic size={48} />}
           </span>
           <strong>{listening ? "Listening…" : "Tap to listen"}</strong>
           <small>{listening ? "Tap to stop" : "Use the microphone to ask"}</small>
         </button>
+        <div className="ai-question-entry">
         <form className="question-form question-form--typed" onSubmit={handleSubmit}>
           <label htmlFor="caregiver-question" className="sr-only">Caregiver question</label>
           <div className="question-controls">
@@ -114,7 +115,7 @@ export function AiBoard({
               id="caregiver-question"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Or type a question…"
+              placeholder="Type a question instead…"
               autoComplete="off"
               maxLength={300}
             />
@@ -124,6 +125,19 @@ export function AiBoard({
             </button>
           </div>
         </form>
+        <div className="ai-question-readout" aria-live="polite">
+          <span className="ai-readout-label">Heard question</span>
+          <p>
+            {session.partialTranscript
+              ? `“${session.partialTranscript}”`
+              : board?.questionText
+                ? `“${board.questionText}”`
+                : listening
+                  ? "Listening for a complete question…"
+                  : "Your spoken question will appear here."}
+          </p>
+        </div>
+        </div>
         </div>
       </section>
 
@@ -138,25 +152,11 @@ export function AiBoard({
       ) : null}
 
       {/* Only takes a row while actually listening — idle shows nothing. */}
-      {session.partialTranscript || listening ? (
-        <p className="transcript-line" aria-live="polite">
-          {session.partialTranscript ? (
-            <>Hearing: &ldquo;{session.partialTranscript}&rdquo;</>
-          ) : (
-            <>Listening for a complete question&hellip;</>
-          )}
-        </p>
-      ) : null}
-
       {microphoneError ? (
         <p className="inline-alert" role="alert">
           <AlertCircle aria-hidden="true" size={18} /> {microphoneError} You can still
           type the question above.
         </p>
-      ) : null}
-
-      {board?.questionText ? (
-        <p className="heard-question">&ldquo;{board.questionText}&rdquo;</p>
       ) : null}
 
       {session.lastError ? (
