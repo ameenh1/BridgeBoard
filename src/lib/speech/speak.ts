@@ -6,6 +6,35 @@ import { MAX_SPEECH_RATE, MIN_SPEECH_RATE } from "@/types/profile";
 let currentAudio: HTMLAudioElement | null = null;
 let speechRequest = 0;
 
+const RETRYABLE_SPEECH_STATUSES = new Set([408, 429, 500, 502, 504]);
+
+async function fetchSpeechAudio(text: string): Promise<Blob> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch("/api/speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        if (attempt === 0 && RETRYABLE_SPEECH_STATUSES.has(response.status)) continue;
+        throw new Error(`speech_${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) throw error;
+      if (error instanceof Error && error.message.startsWith("speech_")) throw error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("speech_unavailable");
+}
+
 /** Uses ElevenLabs online and falls back to the device voice if unavailable. */
 export async function speakNatural(phrase: string, profile: ChildProfile): Promise<void> {
   const text = phrase.trim();
@@ -14,13 +43,7 @@ export async function speakNatural(phrase: string, profile: ChildProfile): Promi
   cancelSpeech();
   const request = ++speechRequest;
   try {
-    const response = await fetch("/api/speech", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    if (!response.ok) throw new Error(`speech_${response.status}`);
-    const blob = await response.blob();
+    const blob = await fetchSpeechAudio(text);
     if (request !== speechRequest) return;
 
     const url = URL.createObjectURL(blob);

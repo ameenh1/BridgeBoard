@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
 export const runtime = "nodejs";
@@ -5,6 +6,22 @@ export const runtime = "nodejs";
 const SpeechRequestSchema = z.object({
   text: z.string().trim().min(1).max(240),
 });
+
+const DEFAULT_ELEVENLABS_MODEL = "eleven_flash_v2_5";
+const FIXED_VOICE_SETTINGS = {
+  stability: 1,
+  similarity_boost: 0.75,
+  style: 0,
+  use_speaker_boost: true,
+  speed: 1,
+} as const;
+
+function createSpeechSeed(text: string, voiceId: string, modelId: string): number {
+  return createHash("sha256")
+    .update(`${voiceId}\0${modelId}\0${text}`)
+    .digest()
+    .readUInt32BE(0);
+}
 
 /** Proxy short AAC phrases to ElevenLabs without exposing its API key. */
 export async function POST(request: Request): Promise<Response> {
@@ -27,6 +44,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
+    const modelId = process.env.ELEVENLABS_MODEL?.trim() || DEFAULT_ELEVENLABS_MODEL;
+
     const upstream = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream?output_format=mp3_44100_128`,
       {
@@ -34,13 +53,9 @@ export async function POST(request: Request): Promise<Response> {
         headers: { "Content-Type": "application/json", "xi-api-key": apiKey },
         body: JSON.stringify({
           text: parsed.data.text,
-          model_id: process.env.ELEVENLABS_MODEL?.trim() || "eleven_flash_v2_5",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.15,
-            use_speaker_boost: true,
-          },
+          model_id: modelId,
+          voice_settings: FIXED_VOICE_SETTINGS,
+          seed: createSpeechSeed(parsed.data.text, voiceId, modelId),
         }),
         signal: request.signal,
       },
