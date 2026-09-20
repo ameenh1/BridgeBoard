@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeBoardApp } from "@/components/BridgeBoardApp";
 import { DEFAULT_PROFILE } from "@/types/profile";
-import { spokenPhrases } from "../setup";
 
 const cloudState = vi.hoisted(() => ({
   user: { id: "u1", email: "caregiver@example.com" },
