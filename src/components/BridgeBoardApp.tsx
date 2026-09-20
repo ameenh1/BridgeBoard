@@ -406,7 +406,6 @@ function BridgeBoardShell() {
         </nav>
 
         <div className="nav-right">
-          <HealthBadge health={health} />
           <button className="profile-pill" type="button" onClick={() => setView("caregiver")}>
             <span className="mini-avatar" aria-hidden="true">
               {(name[0] ?? "B").toUpperCase()}
