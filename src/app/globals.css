@@ -943,17 +943,20 @@ body {
   padding: 14px clamp(12px, 5vw, 72px) 20px;
 }
 
-.message-heading,
-.message-box {
+.message-layout {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(140px, 180px) minmax(0, 1fr);
   margin: 0 auto;
   max-width: 1280px;
 }
 
 .message-heading {
-  align-items: baseline;
+  align-items: flex-start;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .message-heading h2 {
@@ -966,6 +969,10 @@ body {
 .message-heading span {
   color: #777;
   font-size: 14px;
+}
+
+.message-box {
+  margin: 0;
 }
 
 .message-box {
@@ -1666,6 +1673,17 @@ body {
   .message-bar {
     position: sticky;
     bottom: 0;
+  }
+
+  .message-layout {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .message-heading {
+    align-items: baseline;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .choice-grid {

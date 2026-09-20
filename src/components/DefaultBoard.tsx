@@ -59,44 +59,46 @@ export function DefaultBoard({
       </section>
 
       <section className="message-bar" aria-label="Message">
-        <div className="message-heading">
-          <h2>Your message</h2>
-          <span>
-            {message.length} {message.length === 1 ? "word" : "words"}
-          </span>
-        </div>
-        <div className="message-box">
-          <div className="message-chips" aria-live="polite">
-            {message.length ? (
-              message.map((item, index) => (
-                <span className="message-chip" key={`${item.id}-${index}`}>
-                  {item.label}
-                </span>
-              ))
-            ) : (
-              <span className="message-empty">Tap a picture to build a sentence</span>
-            )}
+        <div className="message-layout">
+          <div className="message-heading">
+            <h2>Your message</h2>
+            <span>
+              {message.length} {message.length === 1 ? "word" : "words"}
+            </span>
           </div>
-          <div className="message-actions">
-            <button
-              type="button"
-              aria-label="Delete last word"
-              disabled={!message.length}
-              onClick={() => setMessage((current) => current.slice(0, -1))}
-            >
-              <Delete aria-hidden="true" size={22} />
-            </button>
-            <button type="button" disabled={!message.length} onClick={() => setMessage([])}>
-              Clear
-            </button>
-            <button
-              type="button"
-              className="speak-message"
-              disabled={!message.length}
-              onClick={() => onSpeak(sentence)}
-            >
-              Speak
-            </button>
+          <div className="message-box">
+            <div className="message-chips" aria-live="polite">
+              {message.length ? (
+                message.map((item, index) => (
+                  <span className="message-chip" key={`${item.id}-${index}`}>
+                    {item.label}
+                  </span>
+                ))
+              ) : (
+                <span className="message-empty">Tap a picture to build a sentence</span>
+              )}
+            </div>
+            <div className="message-actions">
+              <button
+                type="button"
+                aria-label="Delete last word"
+                disabled={!message.length}
+                onClick={() => setMessage((current) => current.slice(0, -1))}
+              >
+                <Delete aria-hidden="true" size={22} />
+              </button>
+              <button type="button" disabled={!message.length} onClick={() => setMessage([])}>
+                Clear
+              </button>
+              <button
+                type="button"
+                className="speak-message"
+                disabled={!message.length}
+                onClick={() => onSpeak(sentence)}
+              >
+                Speak
+              </button>
+            </div>
           </div>
         </div>
       </section>

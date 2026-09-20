@@ -63,51 +63,6 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("spoken confirmation", () => {
-  it("shows what was said", async () => {
-    const user = userEvent.setup();
-    await enterApp();
-    await screen.findByRole("navigation", { name: /main/i });
-
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-
-    const bar = document.querySelector(".spoken-bar");
-    expect(bar?.textContent).toContain("want");
-    expect(bar?.getAttribute("aria-live")).toBe("polite");
-  });
-
-  it("is the only output in quiet mode, and says so", async () => {
-    const user = userEvent.setup();
-    await enterApp({ quietMode: true });
-    await screen.findByRole("navigation", { name: /main/i });
-
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-
-    // Nothing was spoken aloud, so the text is the whole message.
-    const bar = document.querySelector(".spoken-bar");
-    expect(bar?.textContent).toContain("Showing");
-    expect(bar?.textContent).toContain("want");
-  });
-
-  it("says 'Said' when speech is on", async () => {
-    const user = userEvent.setup();
-    await enterApp();
-    await screen.findByRole("navigation", { name: /main/i });
-
-    const core = screen.getByRole("region", { name: "Core words" });
-    await user.click(within(core).getByRole("button", { name: /^want$/ }));
-    expect(document.querySelector(".spoken-bar")?.textContent).toContain("Said");
-  });
-
-  it("is empty before anything is said", async () => {
-    await enterApp();
-    await screen.findByRole("navigation", { name: /main/i });
-    expect(document.querySelector(".spoken-bar")?.textContent).toBe("");
-  });
-});
-
 describe("offline", () => {
   it("explains that the AI needs a network and the board does not", async () => {
     const user = userEvent.setup();
@@ -140,7 +95,6 @@ describe("offline", () => {
     const tile = within(core).getByRole("button", { name: /^want$/ });
     expect(tile).not.toBeDisabled();
     await user.click(tile);
-    expect(document.querySelector(".spoken-bar")?.textContent).toContain("want");
   });
 
   it("recovers when the connection returns", async () => {

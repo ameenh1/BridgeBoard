@@ -11,7 +11,7 @@ import {
   type RealtimeTranscriptionController,
 } from "@/lib/speech/realtimeTranscription";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
-import { cancelSpeech, speak } from "@/lib/speech/speak";
+import { cancelSpeech, speakNatural } from "@/lib/speech/speak";
 import {
   clearSettings,
   loadSettings,
@@ -38,7 +38,6 @@ import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
 import { PhotosScreen } from "./PhotosScreen";
-import { SpokenBar } from "./SpokenBar";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
 import { SettingsScreen } from "./SettingsScreen";
@@ -191,7 +190,7 @@ function BridgeBoardShell() {
     const text = phrase.trim();
     if (!text) return;
     setLastSpoken(text);
-    speak(text, profileRef.current);
+    void speakNatural(text, profileRef.current);
   }, []);
 
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
@@ -392,8 +391,6 @@ function BridgeBoardShell() {
         session and any in-flight asset streams live in the shell, so coming
         back to AI AAC shows the same board with the same resolved pictures.
       */}
-      <SpokenBar phrase={lastSpoken} muted={!profile.speechEnabled || profile.quietMode} />
-
       <div
         className="app-content"
         ref={contentRef}
