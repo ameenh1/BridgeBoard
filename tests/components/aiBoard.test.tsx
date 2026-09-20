@@ -50,4 +50,20 @@ describe("AiBoard noise filter control", () => {
     expect(screen.getByRole("slider", { name: "Noise filter threshold" })).toBeEnabled();
     expect(screen.getByText("Off")).toBeInTheDocument();
   });
+
+  it("does not render app-level errors inside the choice surface", () => {
+    render(
+      <AiBoard
+        session={{ ...idleSession, lastError: "asset_stream" }}
+        profile={DEFAULT_PROFILE}
+        realtimeState="idle"
+        online
+        {...callbacks}
+      />,
+    );
+
+    expect(
+      screen.queryByText("Some pictures could not load. Every choice still works."),
+    ).not.toBeInTheDocument();
+  });
 });

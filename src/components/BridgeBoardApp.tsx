@@ -35,6 +35,7 @@ import type { RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
 import { AiBoard } from "./AiBoard";
+import { AiNotificationDock } from "./AiNotificationDock";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
 import { PhotosScreen } from "./PhotosScreen";
@@ -341,6 +342,15 @@ function BridgeBoardShell() {
       ? { ...session, board: applyPersonalPhotos(session.board, photoMap) }
       : session;
 
+  const hasAiNotifications =
+    view === "ai" &&
+    Boolean(
+      microphoneError ||
+        !online ||
+        personalizedSession.lastError ||
+        microphoneNotice,
+    );
+
   const name = profile.displayName.trim();
 
   return (
@@ -394,7 +404,7 @@ function BridgeBoardShell() {
         back to AI AAC shows the same board with the same resolved pictures.
       */}
       <div
-        className="app-content"
+        className={`app-content${hasAiNotifications ? " has-ai-notifications" : ""}`}
         ref={contentRef}
         tabIndex={-1}
         role="region"
@@ -414,8 +424,6 @@ function BridgeBoardShell() {
             profile={profile}
             realtimeState={realtimeState}
             online={online}
-            microphoneError={microphoneError}
-            microphoneNotice={microphoneNotice}
             onSubmitQuestion={submitQuestion}
             onResetChoices={resetAiChoices}
             onToggleListening={toggleListening}
@@ -444,6 +452,15 @@ function BridgeBoardShell() {
           />
         ) : null}
       </div>
+
+      {view === "ai" ? (
+        <AiNotificationDock
+          online={online}
+          microphoneError={microphoneError}
+          microphoneNotice={microphoneNotice}
+          boardError={personalizedSession.lastError}
+        />
+      ) : null}
     </main>
   );
 }

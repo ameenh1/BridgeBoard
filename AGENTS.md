@@ -13,6 +13,8 @@
 ## AI integration
 
 - When renaming the caregiver input to “message,” broad accessible-name regexes can match both the textbox and microphone button; target the textbox role in UI tests. Statement replies also need their own validator so short first-person responses remain valid while instructions and medical advice are rejected.
+- Production image resolution requires a server-only `ASSET_STREAM_SECRET`; without it, health reports `assetStream: unconfigured` and classification omits the resolver stream, so neither Supabase cache reads nor image generation runs.
+- Keep AI AAC notices in the app-shell notification dock, outside the fixed-height choice rows. When the dock is present, constrained viewports must scroll instead of allowing choice cards to overlap alerts.
 - Keep browser code limited to contracts, Realtime control, and board/cache events. OpenAI and Supabase admin clients stay server-only.
 - A board is usable before image work starts. Never clear the committed board or disable choices because classification, search, generation, or caching is pending.
 - Apply image events by stable `assetKey`. A ready image never regresses to pending or unavailable, and unrelated choices never change.

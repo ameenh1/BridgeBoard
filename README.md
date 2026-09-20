@@ -117,6 +117,10 @@ npm run verify
 Runs typecheck, lint, the full test suite, the image check, production smoke
 checks, a production build, and a production dependency audit.
 
+See [deployment instructions](docs/DEPLOYMENT.md) for Vercel environment
+scoping, Production/Preview commands, post-deploy health checks, image-stream
+verification, and rollback guidance.
+
 ## What this will not do
 
 It will not choose an answer, claim to know what someone wants or feels, speak

@@ -863,6 +863,18 @@ body {
   overflow: hidden;
 }
 
+/* Notifications reserve their own app-shell row. On short screens the AI
+   surface scrolls instead of letting its fixed-height choice rows overlap it. */
+.app-content.has-ai-notifications {
+  overflow-y: auto;
+}
+
+.app-content.has-ai-notifications .ai-view {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
 /* ==========================================================================
    Default AAC board
    ========================================================================== */
@@ -1360,6 +1372,53 @@ body {
 }
 
 .board-notice {
+  background: #fff8e8;
+  border-color: #efd9a4;
+  color: #7a5b16;
+}
+
+.ai-notification-dock {
+  background: #edf8f2;
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  padding: 0 clamp(16px, 5vw, 72px) calc(12px + env(safe-area-inset-bottom));
+}
+
+.ai-notification-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 440px;
+  width: 100%;
+}
+
+.ai-toast {
+  align-items: flex-start;
+  border: 1px solid;
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(48, 80, 74, 0.14);
+  display: flex;
+  font-size: 16px;
+  font-weight: 700;
+  gap: 9px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 11px 14px;
+}
+
+.ai-toast svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.ai-toast--error {
+  background: var(--coral-wash);
+  border-color: #f0c9c7;
+  color: var(--coral-deep);
+}
+
+.ai-toast--status {
   background: #fff8e8;
   border-color: #efd9a4;
   color: #7a5b16;
@@ -1977,6 +2036,20 @@ body {
 }
 
 @media (max-width: 560px) {
+  .ai-notification-dock {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .ai-notification-stack {
+    max-width: none;
+  }
+
+  .ai-toast {
+    font-size: 15px;
+    padding: 10px 12px;
+  }
+
   .ai-capture-controls {
     grid-template-columns: 1fr;
   }

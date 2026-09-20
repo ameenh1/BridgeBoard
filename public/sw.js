@@ -17,7 +17,7 @@
  * Generated images therefore do not work offline. That is correct: the AI
  * side needs the network by definition. The manual board does not.
  */
-const VERSION = "4ba9ccd7cd20";
+const VERSION = "1050d0ed46ab";
 const SHELL_CACHE = `bridgeboard-shell-${VERSION}`;
 const RUNTIME_CACHE = `bridgeboard-runtime-${VERSION}`;
 
@@ -25,6 +25,7 @@ const RUNTIME_CACHE = `bridgeboard-runtime-${VERSION}`;
 const PRECACHE = [
   "/",
   "/manifest.webmanifest",
+  "/brand/Clusiacae%20(3).png",
   "/brand/clusiacae.webp",
   "/brand/evergreen.svg",
   "/brand/kids.webp",
