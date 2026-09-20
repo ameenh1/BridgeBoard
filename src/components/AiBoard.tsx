@@ -3,7 +3,6 @@
 import {
   Mic, MicOff, RotateCcw, Send, Volume2, WifiOff,
 } from "lucide-react";
-import Image from "next/image";
 import { type FormEvent, useState } from "react";
 import type { BoardSessionState } from "@/lib/board/boardSessionController";
 import type { RealtimeTranscriptionState } from "@/lib/speech/types";
@@ -44,8 +43,6 @@ export function AiBoard({
 
   function renderChoice(choice: RenderableChoice) {
     const selected = session.selectedChoiceKey === choice.choiceKey;
-    const showPhrase =
-      profile.textLabelsEnabled && !isPersistentAiChoice(choice) && choice.spokenPhrase !== choice.label;
     return (
       <button
         key={choice.choiceKey}
@@ -69,7 +66,6 @@ export function AiBoard({
         />
         <span className="choice-copy">
           <strong>{choice.label}</strong>
-          {showPhrase ? <small>{choice.spokenPhrase}</small> : null}
         </span>
         <VisualAttribution visual={choice.visual} />
       </button>
@@ -85,6 +81,12 @@ export function AiBoard({
     if (!text) return;
     setQuestion("");
     onSubmitQuestion(text);
+  }
+
+  function handleResetChoices() {
+    if (window.confirm("Are you sure you want to clear the generated choices?")) {
+      onResetChoices();
+    }
   }
 
   return (
@@ -176,25 +178,15 @@ export function AiBoard({
               <button
                 type="button"
                 className="ai-reset-button"
-                onClick={onResetChoices}
+                onClick={handleResetChoices}
               >
                 <RotateCcw aria-hidden="true" size={16} />
                 Reset choices
               </button>
             </div>
-            <div className="ai-generated-grid">
+            <div className={`ai-generated-grid${session.isRefreshing ? " is-loading" : ""}`}>
               <div className="choice-grid choice-grid--ai">
                 {aiChoices.map((choice) => renderChoice(choice))}
-                {Array.from({ length: Math.max(0, 8 - aiChoices.length) }).map((_, index) => (
-                  <div
-                    className="ai-choice-slot"
-                    key={`empty-ai-slot-${index}`}
-                    aria-label="Empty caregiver choice slot"
-                  >
-                    <Image className="ai-empty-flower" src="/brand/clusiacae.webp" alt="" width={22} height={30} />
-                    <span>Waiting for a question</span>
-                  </div>
-                ))}
               </div>
               {session.isRefreshing ? (
                 <div className="ai-loading-overlay" role="status" aria-live="polite">

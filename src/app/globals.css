@@ -1404,11 +1404,8 @@ body {
   position: relative;
 }
 
-.ai-empty-flower {
-  height: 30px;
-  object-fit: contain;
-  opacity: 0.3;
-  width: 22px;
+.ai-generated-grid.is-loading {
+  min-height: 154px;
 }
 
 .ai-loading-overlay {
@@ -1436,22 +1433,6 @@ body {
   border-top-color: var(--coral);
   height: 28px;
   width: 28px;
-}
-
-.ai-choice-slot {
-  align-items: center;
-  background: rgba(255, 255, 255, 0.54);
-  border: 2px dashed #c8d9d5;
-  border-radius: 18px;
-  color: #91a6a1;
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-  gap: 8px;
-  justify-content: center;
-  min-height: 118px;
-  padding: 10px 8px;
-  text-align: center;
 }
 
 .choice-card--quick {
@@ -1983,7 +1964,6 @@ body {
     gap: 6px;
   }
 
-  .ai-choice-slot,
   .choice-card--dense,
   .choice-card--quick {
     height: 104px;

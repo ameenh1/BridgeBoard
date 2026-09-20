@@ -266,10 +266,29 @@ describe("ai board", () => {
     const user = userEvent.setup();
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
-    expect(await screen.findAllByText(/waiting for a question/i)).toHaveLength(8);
+    expect(screen.queryByText(/waiting for a question/i)).toBeNull();
     for (const label of ["Yes", "No", "more", "all done"]) {
       expect(screen.getByText(label, { selector: "strong" })).toBeDefined();
     }
+  });
+
+  it("confirms before clearing generated choices", async () => {
+    const user = userEvent.setup();
+    stubFetch([jsonBoard(board([choice("waffles", "a", true)]))]);
+
+    await enterApp(user);
+    await askFirstQuestion(user);
+    await screen.findByRole("button", { name: /waffles/i });
+
+    const confirmation = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.click(screen.getByRole("button", { name: /reset choices/i }));
+    expect(confirmation).toHaveBeenCalledWith("Are you sure you want to clear the generated choices?");
+    expect(screen.getByRole("button", { name: /waffles/i })).toBeDefined();
+
+    confirmation.mockReturnValue(true);
+    await user.click(screen.getByRole("button", { name: /reset choices/i }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: /waffles/i })).toBeNull());
+    confirmation.mockRestore();
   });
 
   it("keeps the committed board usable while the next question is pending", async () => {
