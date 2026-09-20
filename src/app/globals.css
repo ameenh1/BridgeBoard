@@ -1107,7 +1107,7 @@ body {
   align-items: center;
   display: grid;
   gap: clamp(24px, 5vw, 52px);
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 308px minmax(0, 1fr);
 }
 
 .ai-listen-button {
@@ -1121,11 +1121,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  justify-content: center;
   margin: 0;
-  min-height: 220px;
+  min-height: 308px;
   padding: 22px;
   transition: transform 160ms ease, background 160ms ease;
-  width: 220px;
+  width: 308px;
 }
 
 .ai-listen-button:hover {
@@ -1859,7 +1860,9 @@ body {
 
   .ai-listen-button {
     margin: 0 auto;
-    max-width: 300px;
+    max-width: min(70vw, 308px);
+    min-height: min(70vw, 308px);
+    width: min(70vw, 308px);
   }
 
   .aac-content {
