@@ -1984,3 +1984,51 @@ body {
     transition: none;
   }
 }
+
+/* Full board: every approved word, grouped, no AI involved. */
+
+.full-board-view {
+  margin: 0 auto;
+  max-width: 1240px;
+  padding: clamp(20px, 4vw, 48px) clamp(16px, 5vw, 72px) 60px;
+  width: 100%;
+}
+
+.full-board-group {
+  margin-top: 30px;
+}
+
+.full-board-group h2 {
+  color: var(--ink-soft);
+  font-family: var(--body-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  margin: 0 0 10px 2px;
+  text-transform: uppercase;
+}
+
+.full-board-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+
+/* Tiles here size to their content rather than a fixed viewport row. */
+.full-board-grid .aac-card {
+  background: #fff;
+  font-size: clamp(14px, 1.2vw, 18px);
+  min-height: 124px;
+  padding: 10px 6px;
+}
+
+.full-board-grid .aac-card img,
+.full-board-grid .tile-symbol {
+  height: clamp(48px, 7vh, 72px);
+}
+
+@media (max-width: 560px) {
+  .full-board-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

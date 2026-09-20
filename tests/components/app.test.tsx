@@ -356,13 +356,15 @@ describe("ai board", () => {
   });
 
 
-  it("switches to the manual board on Full board without waiting for the AI", async () => {
+  it("switches to the full board without waiting for the AI", async () => {
     const user = userEvent.setup();
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
-    await user.click(screen.getByRole("button", { name: /full board/i }));
-    expect(await screen.findByRole("region", { name: "Core words" })).toBeDefined();
+    // Scoped to the support actions: "Full board" is also a nav tab now.
+    const actions = document.querySelector(".action-rail") as HTMLElement;
+    await user.click(within(actions).getByRole("button", { name: /full board/i }));
+    expect(await screen.findByRole("region", { name: "People" })).toBeDefined();
   });
 });
 
