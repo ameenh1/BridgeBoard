@@ -1075,12 +1075,15 @@ body {
 }
 
 .ai-capture {
-  background: linear-gradient(135deg, #e5f5f1 0%, #f8f1fb 100%);
-  border: 1px solid #b9dfd9;
-  border-radius: 28px;
-  margin: 0;
-  padding: 16px clamp(18px, 3vw, 32px) 18px;
-  text-align: left;
+  background: linear-gradient(135deg, #ffffff 0%, #f5fbf8 62%, #faf6fd 100%);
+  border: 2px solid #c5e5dc;
+  border-radius: 32px;
+  box-shadow: 0 12px 28px rgba(48, 80, 74, 0.08);
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 1000px;
+  padding: 22px clamp(20px, 3vw, 36px) 24px;
+  text-align: center;
 }
 
 .ai-view {
@@ -1098,7 +1101,7 @@ body {
   color: var(--muted);
   font-size: 18px;
   font-weight: 600;
-  margin: 4px 0 12px;
+  margin: 5px 0 18px;
 }
 
 .ai-capture .eyebrow {
@@ -1109,26 +1112,26 @@ body {
 .ai-capture-controls {
   align-items: center;
   display: grid;
-  gap: clamp(16px, 3vw, 28px);
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 42px);
+  grid-template-columns: 178px minmax(0, 1fr);
 }
 
 .ai-listen-button {
   align-items: center;
   background: var(--coral);
   border: 0;
-  border-radius: 28px;
-  box-shadow: 0 10px 22px rgba(240, 101, 107, 0.24);
+  border-radius: 50%;
+  box-shadow: 0 12px 24px rgba(240, 101, 107, 0.28);
   color: #fff;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   margin: 0;
-  min-height: 126px;
-  padding: 14px 22px;
+  min-height: 178px;
+  padding: 18px;
   transition: transform 160ms ease, background 160ms ease;
-  width: 100%;
+  width: 178px;
 }
 
 .ai-listen-button:hover {
@@ -1152,23 +1155,27 @@ body {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   display: flex;
-  height: 76px;
+  height: 62px;
   justify-content: center;
-  width: 76px;
+  width: 62px;
 }
 
 .ai-listen-button strong {
-  font-size: 25px;
+  font-size: 19px;
   font-weight: 800;
 }
 
 .ai-listen-button small {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.88;
 }
 
 .question-form--typed {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid #d5e7e1;
+  border-radius: 20px;
+  padding: 12px;
   margin-top: 0;
 }
 
@@ -1177,10 +1184,13 @@ body {
 }
 
 .question-form--typed .question-controls input {
+  background: transparent;
+  border-color: transparent;
   min-height: 48px;
 }
 
 .question-form--typed .ask-button {
+  border-radius: 999px;
   font-size: 18px;
   font-weight: 800;
   min-height: 48px;
