@@ -1093,7 +1093,7 @@ body {
 
 .ai-capture .eyebrow {
   color: #000;
-  font-family: "Franklin Gothic Demi";
+  font-family: var(--display);
   font-size: clamp(28px, 3vw, 40px);
   font-weight: 400;
   letter-spacing: 0;
