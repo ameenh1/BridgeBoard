@@ -266,7 +266,7 @@ describe("ai board", () => {
     const user = userEvent.setup();
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
-    expect(await screen.findAllByText(/waiting for a question/i)).toHaveLength(4);
+    expect(await screen.findAllByText(/waiting for a question/i)).toHaveLength(8);
     for (const label of ["Yes", "No", "more", "all done"]) {
       expect(screen.getByText(label, { selector: "strong" })).toBeDefined();
     }

@@ -39,7 +39,7 @@ export function AiBoard({
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
   // Row 1: four slots for this question's AI image tiles. Row 2: the default answers.
-  const aiChoices = (board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? []).slice(0, 4);
+  const aiChoices = (board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? []).slice(0, 8);
   const quickChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
 
   function renderChoice(choice: RenderableChoice) {
@@ -90,9 +90,6 @@ export function AiBoard({
   return (
     <section className="mode-view ai-view">
       <section className="ai-capture" aria-label="Ask a question">
-        <div className="ai-capture-heading">
-          <span className="eyebrow">Ask a question</span>
-        </div>
         <div className="ai-capture-controls">
         <button
           type="button"
@@ -106,8 +103,8 @@ export function AiBoard({
           <span className="ai-listen-icon" aria-hidden="true">
             {listening ? <MicOff size={48} /> : <Mic size={48} />}
           </span>
-          <strong>{listening ? "Listening…" : "Tap to listen"}</strong>
-          <small>{listening ? "Tap to stop" : "Use the microphone to ask"}</small>
+            <strong>{listening ? "Listening…" : "Ask a question"}</strong>
+            <small>{listening ? "Tap to stop" : "Tap to listen"}</small>
         </button>
         <div className="ai-question-entry">
         <form className="question-form question-form--typed" onSubmit={handleSubmit}>
@@ -188,7 +185,7 @@ export function AiBoard({
             <div className="ai-generated-grid">
               <div className="choice-grid choice-grid--ai">
                 {aiChoices.map((choice) => renderChoice(choice))}
-                {Array.from({ length: Math.max(0, 4 - aiChoices.length) }).map((_, index) => (
+                {Array.from({ length: Math.max(0, 8 - aiChoices.length) }).map((_, index) => (
                   <div
                     className="ai-choice-slot"
                     key={`empty-ai-slot-${index}`}
