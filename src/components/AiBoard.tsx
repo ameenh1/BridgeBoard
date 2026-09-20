@@ -89,7 +89,6 @@ export function AiBoard({
       <section className="ai-capture" aria-label="Ask a question">
         <div className="ai-capture-heading">
           <span className="eyebrow">Ask a question</span>
-          <p>Tap the microphone to listen, or type a question below.</p>
         </div>
         <div className="ai-capture-controls">
         <button

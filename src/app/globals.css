@@ -1091,16 +1091,15 @@ body {
   padding-top: 16px;
 }
 
-.ai-capture-heading p {
-  color: var(--muted);
-  font-size: 18px;
-  font-weight: 600;
-  margin: 5px 0 16px;
-}
-
 .ai-capture .eyebrow {
-  font-size: 15px;
-  font-weight: 900;
+  color: var(--coral-deep);
+  font-family: var(--display);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: 22px;
+  text-transform: none;
 }
 
 .ai-capture-controls {
