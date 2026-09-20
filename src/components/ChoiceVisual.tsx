@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { ChoiceVisual as ChoiceVisualData } from "@/types/board";
 import { ChoiceIcon } from "./icons";
 
@@ -50,7 +51,9 @@ export function ChoiceVisual({
   label: string;
   large?: boolean;
 }) {
-  const ready = visual.status === "ready" && isRenderableVisualUrl(visual.url);
+  const [failedImageUrl, setFailedImageUrl] = useState<string>();
+  const imageFailed = Boolean(visual.url && failedImageUrl === visual.url);
+  const ready = visual.status === "ready" && isRenderableVisualUrl(visual.url) && !imageFailed;
   const bundled = ready && visual.url!.startsWith(BUNDLED_PREFIX);
 
   return (
@@ -70,7 +73,14 @@ export function ChoiceVisual({
           // cannot be optimized ahead of time and must not be routed through
           // the image optimizer, so they render as a plain element.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={visual.url} alt="" className="choice-visual-img" loading="lazy" decoding="async" />
+          <img
+            src={visual.url}
+            alt=""
+            className="choice-visual-img"
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailedImageUrl(visual.url)}
+          />
         )
       ) : (
         <span className="choice-symbol">

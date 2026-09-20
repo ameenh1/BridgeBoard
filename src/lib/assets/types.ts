@@ -34,6 +34,8 @@ export type AssetRecord = {
   choiceId: string;
   source: VisualSource;
   url: string;
+  /** When present, the URL is only safe to reuse until this time. */
+  expiresAt?: number;
   objectPath?: string;
   sourceUrl?: string;
   attribution?: string;

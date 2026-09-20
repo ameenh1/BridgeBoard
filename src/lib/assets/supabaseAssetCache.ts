@@ -25,12 +25,18 @@ type Options = {
   signedUrlTtlSeconds?: number;
 };
 
-function toRecord(row: AssetRow, url: string, source: AssetRecord["source"]): AssetRecord {
+function toRecord(
+  row: AssetRow,
+  url: string,
+  source: AssetRecord["source"],
+  expiresAt: number,
+): AssetRecord {
   return {
     assetKey: row.cache_key,
     choiceId: row.choice_id,
     source,
     url,
+    expiresAt,
     objectPath: row.object_path,
     sourceUrl: row.source_url ?? undefined,
     attribution: row.attribution ?? undefined,
@@ -74,7 +80,7 @@ export function createSupabaseAssetCache(options: Options = {}): SharedAssetCach
         .update({ last_used_at: new Date().toISOString() })
         .eq("cache_key", assetKey);
       if (touchError) console.warn("[asset-cache] last_used update failed", touchError.message);
-      return toRecord(data, signed.signedUrl, "cache");
+      return toRecord(data, signed.signedUrl, "cache", Date.now() + ttl * 1000);
     },
 
     async put(record) {
@@ -126,7 +132,7 @@ export function createSupabaseAssetCache(options: Options = {}): SharedAssetCach
         .from(bucket)
         .createSignedUrl(objectPath, ttl);
       if (signedError || !signed?.signedUrl) throw signedError ?? new Error("signed_url_missing");
-      return toRecord(data, signed.signedUrl, candidate.source);
+      return toRecord(data, signed.signedUrl, candidate.source, Date.now() + ttl * 1000);
     },
   };
 }
