@@ -832,6 +832,7 @@ body {
 
 /* The AI board is designed as a single-screen communication surface. */
 .app-content:has(.ai-view) {
+  background: #edf8f2;
   overflow: hidden;
 }
 
