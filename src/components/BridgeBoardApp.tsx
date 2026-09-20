@@ -37,6 +37,7 @@ import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
 import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
+import { FullBoardScreen } from "./FullBoardScreen";
 import { PhotosScreen } from "./PhotosScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
@@ -45,12 +46,13 @@ import { ACTIONS } from "./icons";
 import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
-type View = "board" | "ai" | "caregiver" | "settings" | "photos";
+type View = "board" | "ai" | "full" | "caregiver" | "settings" | "photos";
 
 /** Named so a screen reader announces the view when focus moves into it. */
 const VIEW_LABELS: Record<View, string> = {
   board: "Default AAC board",
   ai: "AI AAC",
+  full: "Full board",
   caregiver: "Caregiver",
   settings: "Settings",
   photos: "Personal photos",
@@ -249,7 +251,7 @@ function BridgeBoardShell() {
   const handleAction = useCallback(
     (action: BoardAction) => {
       if (action === "full_board") {
-        setView("board");
+        setView("full");
         return;
       }
       if (action === "repeat" && lastSpoken) {
@@ -360,6 +362,9 @@ function BridgeBoardShell() {
           <NavButton active={view === "ai"} onClick={() => setView("ai")}>
             AI AAC
           </NavButton>
+          <NavButton active={view === "full"} onClick={() => setView("full")}>
+            Full board
+          </NavButton>
         </nav>
 
         <div className="nav-right">
@@ -420,6 +425,10 @@ function BridgeBoardShell() {
           />
         ) : null}
 
+
+        {view === "full" ? (
+          <FullBoardScreen profile={profile} photos={photoMap} onSpeak={say} />
+        ) : null}
 
         {view === "caregiver" ? (
           <CaregiverScreen

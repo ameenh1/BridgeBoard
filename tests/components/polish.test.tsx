@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeBoardApp } from "@/components/BridgeBoardApp";
 import { DEFAULT_PROFILE } from "@/types/profile";
+import { spokenPhrases } from "../setup";
 
 const cloudState = vi.hoisted(() => ({
   user: { id: "u1", email: "caregiver@example.com" },
@@ -23,12 +24,19 @@ vi.mock("@/lib/storage/cloud", () => ({
 function stubHealth() {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () =>
-      new Response(JSON.stringify({ classifier: "live", sharedCache: "configured" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    ),
+    vi.fn(async (input: RequestInfo | URL) => {
+      // Unconfigured, which is what the real route returns without an
+      // ELEVENLABS_API_KEY. speakNatural then falls back to the device voice,
+      // and that fallback is the path these tests care about - it is also the
+      // only one that works offline.
+      if (String(input).includes("/api/speech")) {
+        return new Response(JSON.stringify({ error: "speech_unconfigured" }), { status: 503 });
+      }
+      return new Response(
+        JSON.stringify({ classifier: "live", sharedCache: "configured" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }),
   );
 }
 
@@ -147,5 +155,47 @@ describe("focus and announcement on view change", () => {
     expect(document.activeElement).toBe(
       screen.getByRole("region", { name: "Default AAC board" }),
     );
+  });
+});
+
+describe("full board", () => {
+  it("reaches words the quick board cannot, and speaks them", async () => {
+    const user = userEvent.setup();
+    await enterApp();
+    await screen.findByRole("navigation", { name: /main/i });
+
+    // Mom exists in the catalog but is not on the 24-tile quick board.
+    expect(screen.queryByRole("button", { name: /^Mom$/ })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /full board/i }));
+    const people = await screen.findByRole("region", { name: "People" });
+    await user.click(within(people).getByRole("button", { name: /^Mom$/ }));
+
+    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want Mom."));
+  });
+
+  it("is where the Full board support action goes", async () => {
+    const user = userEvent.setup();
+    await enterApp();
+    await screen.findByRole("navigation", { name: /main/i });
+
+    await user.click(screen.getByRole("button", { name: /ai aac/i }));
+
+    // Scoped to the support actions: "Full board" is also a nav tab now.
+    const actions = document.querySelector(".quick-actions") as HTMLElement;
+    await user.click(within(actions).getByRole("button", { name: /full board/i }));
+    expect(await screen.findByRole("region", { name: "Places" })).toBeDefined();
+  });
+
+  it("works with no connection", async () => {
+    const user = userEvent.setup();
+    setOnline(false);
+    await enterApp();
+    await screen.findByRole("navigation", { name: /main/i });
+
+    await user.click(screen.getByRole("button", { name: /full board/i }));
+    const places = await screen.findByRole("region", { name: "Places" });
+    await user.click(within(places).getByRole("button", { name: /^Home$/ }));
+    await waitFor(() => expect(spokenPhrases().at(-1)).toBe("I want to go home."));
   });
 });

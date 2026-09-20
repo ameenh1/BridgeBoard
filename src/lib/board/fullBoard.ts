@@ -23,7 +23,7 @@ export type FullBoardCategory = {
  */
 const CATEGORY_GROUPS: { key: string; label: string; categories: string[] }[] = [
   { key: "core", label: "Core", categories: ["core"] },
-  { key: "needs", label: "Needs", categories: ["needs", "bathroom"] },
+  { key: "needs", label: "Needs", categories: ["needs", "bathroom", "body_needs"] },
   { key: "feelings", label: "Feelings", categories: ["feelings"] },
   { key: "food", label: "Food", categories: ["food", "drink"] },
   { key: "people", label: "People", categories: ["people"] },
@@ -39,4 +39,19 @@ export function getFullBoardCategories(): FullBoardCategory[] {
       .filter((item) => group.categories.includes(item.category))
       .map((item) => toRenderableChoice(item)),
   }));
+}
+
+/**
+ * Catalog categories no display group claims.
+ *
+ * A word that is approved but grouped nowhere is unreachable without the AI,
+ * which defeats the point of a manual board. `body_needs` was in exactly that
+ * state until it was added above, so this is asserted in the tests rather
+ * than left to be noticed.
+ */
+export function ungroupedCategories(): string[] {
+  const grouped = new Set(CATEGORY_GROUPS.flatMap((group) => group.categories));
+  return [...new Set(approvedVocabulary.map((item) => item.category))].filter(
+    (category) => !grouped.has(category),
+  );
 }
