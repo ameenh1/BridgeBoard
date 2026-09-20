@@ -1375,9 +1375,10 @@ body {
 
 .ai-reset-button {
   align-items: center;
-  background: transparent;
-  border: 1px solid #b9dfd9;
+  background: var(--mint-tint);
+  border: 2px solid var(--green);
   border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(79, 156, 103, 0.14);
   color: var(--green-deep);
   cursor: pointer;
   display: inline-flex;
@@ -1387,6 +1388,7 @@ body {
   gap: 7px;
   min-height: 40px;
   padding: 0 14px;
+  transform: translateY(4px);
 }
 
 .ai-reset-button:hover {
