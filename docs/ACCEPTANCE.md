@@ -21,7 +21,7 @@ session flag and stored settings start empty. Every step has one pass/fail.
 | 6 | Wait ~10 seconds. | Each picture fills its own card independently — one lands before the other, and neither card moves or resizes when it does. |
 | 7 | Click **Waffles**. It speaks and gets a coral border. Then type `Would you like waffles or pancakes?` and press **Ask**. | Waffles is visibly selected before you ask the second question. |
 | 8 | **While "Updating choices" is showing**, click **dragon fruit**, then click **Help**. | Both old cards are still on screen and still respond. Waffles keeps its selected border. Help speaks "I need help." Nothing blanks out. |
-| 9 | Wait for the new board to commit. | Waffles **keeps its picture and its selection**. Pancakes is the only card showing a spinner. Dragon fruit is gone. |
+| 9 | Wait for the new board to commit. | Waffles **keeps its picture and its selection**. Pancakes is the only card showing a spinner. Dragon fruit is still there below the new answers — earlier answers move down, they are never removed by a new question. |
 | 10 | Click **History**, then click **AI AAC** again. | The same board is there, with the same pictures and the same selection. Nothing re-fetches. |
 | 11 | Press F5 to reload (same tab, same session). | You go straight back to the board — not the login. Settings and history are intact. |
 | 12 | Press **Listen**. Allow the microphone. Say "Would you like juice or milk?" then stop talking. Then press **Stop**. | Words appear next to "Hearing:" as you speak. About a second after you stop, a new board is classified. **Stop** makes the browser's microphone indicator go out. |

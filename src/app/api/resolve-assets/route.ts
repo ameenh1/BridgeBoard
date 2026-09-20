@@ -53,7 +53,9 @@ export async function POST(request: Request): Promise<Response> {
         providers: createOpenAIAssetProviders(),
         sharedCache: createOptionalSupabaseAssetCache(),
         signal: abortController.signal,
-        concurrency: 3,
+        // One worker per tile up to the per-board maximum, so a four-answer
+        // board resolves in a single generation round instead of two.
+        concurrency: 6,
         onResolution(resolution) {
           write({
             type: resolution.status === "ready" ? "asset.ready" : "asset.unavailable",

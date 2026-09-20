@@ -64,6 +64,10 @@ realtime.onFinalTranscript = ({ transcript }) => {
 The controller:
 
 - keeps the committed board and support actions usable during classification;
+- treats the AI side as an append-only gallery: the new question's answers go
+  on top and earlier answers move down (up to 8 visible), so generated pictures
+  survive later questions; the quick answers ride along separately and never
+  count against that cap;
 - merges unchanged choices by `choiceKey` and retains ready images;
 - adds new choices with text/icon plus a per-choice pending visual;
 - applies NDJSON image events only when `assetKey` still matches;

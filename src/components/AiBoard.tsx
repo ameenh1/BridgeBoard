@@ -41,29 +41,38 @@ export function AiBoard({
   const [question, setQuestion] = useState("");
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
-  const persistentChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
-  const suggestionChoices =
-    board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? [];
+  // Row 1: this question's AI image tiles. Row 2: the default answers.
+  const aiChoices = board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? [];
+  const quickChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
 
-  function renderChoice(choice: RenderableChoice, compact: boolean) {
+  function renderChoice(choice: RenderableChoice) {
     const selected = session.selectedChoiceKey === choice.choiceKey;
+    const showPhrase =
+      profile.textLabelsEnabled && choice.spokenPhrase !== choice.label;
     return (
       <button
         key={choice.choiceKey}
         type="button"
-        className={`choice-card${selected ? " is-selected" : ""}${compact ? " choice-card--compact" : ""}`}
+        className={`choice-card choice-card--dense${selected ? " is-selected" : ""}${isPersistentAiChoice(choice) ? " is-persistent" : ""}`}
         aria-pressed={selected}
+        // When word labels are off and the spoken phrase differs from the
+        // visible label, announce what tapping will actually say.
+        aria-label={
+          !profile.textLabelsEnabled && choice.spokenPhrase !== choice.label
+            ? choice.spokenPhrase
+            : undefined
+        }
         onClick={() => onChoose(choice)}
       >
         <ChoiceVisual
           visual={choice.visual}
           iconKey={choice.iconKey}
           label={choice.label}
-          large={!compact && profile.buttonSize === "large"}
+          large={false}
         />
         <span className="choice-copy">
           <strong>{choice.label}</strong>
-          {profile.textLabelsEnabled ? <small>{choice.spokenPhrase}</small> : null}
+          {showPhrase ? <small>{choice.spokenPhrase}</small> : null}
         </span>
         <VisualAttribution visual={choice.visual} />
         {choice.origin === "dynamic" ? (
@@ -89,77 +98,13 @@ export function AiBoard({
   }
 
   return (
-    <section className="mode-view">
-      <div className="mode-header">
-        <div>
-          <span className="eyebrow">Optional support</span>
-          <h1>AI AAC</h1>
-          <p>
-            Ask a question out loud or type it. The current choices stay usable
-            the whole time the next board is being prepared.
-          </p>
-        </div>
-      </div>
-
-      <form className="question-form" onSubmit={handleSubmit}>
-        <label htmlFor="caregiver-question">Caregiver question</label>
-        <div className="question-controls">
-          <input
-            id="caregiver-question"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Would you like waffles or dragon fruit?"
-            autoComplete="off"
-            maxLength={300}
-          />
-          <button
-            type="button"
-            className={`listen-button${listening ? " listening" : ""}`}
-            onClick={onToggleListening}
-            aria-pressed={listening}
-          >
-            {listening ? <MicOff aria-hidden="true" size={20} /> : <Mic aria-hidden="true" size={20} />}
-            <span>
-              {realtimeState === "connecting" ? "Connecting" : listening ? "Stop" : "Listen"}
-            </span>
-          </button>
-          <button className="primary-button ask-button" type="submit" disabled={!question.trim()}>
-            <Send aria-hidden="true" size={18} />
-            <span>Ask</span>
-          </button>
-        </div>
-      </form>
-
-      <p className="transcript-line" aria-live="polite">
-        {session.partialTranscript ? (
-          <>Hearing: &ldquo;{session.partialTranscript}&rdquo;</>
-        ) : listening ? (
-          <>Listening for a complete question&hellip;</>
-        ) : (
-          <>Nothing is listening until you press Listen.</>
-        )}
-      </p>
-
-      {microphoneError ? (
-        <p className="inline-alert" role="alert">
-          <AlertCircle aria-hidden="true" size={18} /> {microphoneError} You can still
-          type the question above.
-        </p>
-      ) : null}
-
-      <div className="board-heading-row">
-        <div>
-          <span className="eyebrow">Communication board</span>
-          <h2>{board?.title ?? "Start here"}</h2>
-          {board?.questionText ? (
-            <p className="heard-question">&ldquo;{board.questionText}&rdquo;</p>
-          ) : null}
-        </div>
-        {/*
-          A non-blocking indicator. The board below stays mounted and every
-          tile stays clickable while this is showing — a refresh must never
-          take the current choices away from someone mid-sentence.
-        */}
+    <section className="mode-view ai-view">
+      {/*
+        One compact header: title left, non-blocking board status right.
+        The status never disables anything — tiles stay clickable throughout.
+      */}
+      <div className="ai-topbar">
+        <h1>AI AAC</h1>
         <p className={`refresh-state${session.isRefreshing ? " is-active" : ""}`} aria-live="polite">
           {session.isRefreshing ? (
             <>
@@ -175,6 +120,58 @@ export function AiBoard({
         </p>
       </div>
 
+      <form className="question-form question-form--compact" onSubmit={handleSubmit}>
+        <label htmlFor="caregiver-question" className="sr-only">
+          Caregiver question
+        </label>
+        <div className="question-controls">
+          <input
+            id="caregiver-question"
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Would you like waffles or dragon fruit?"
+            autoComplete="off"
+            maxLength={300}
+          />
+          <button
+            type="button"
+            className={`listen-button listen-button--icon${listening ? " listening" : ""}`}
+            onClick={onToggleListening}
+            aria-pressed={listening}
+            aria-label={listening ? "Stop listening" : "Listen for a spoken question"}
+            title={listening ? "Stop" : "Listen"}
+          >
+            {listening ? <MicOff aria-hidden="true" size={20} /> : <Mic aria-hidden="true" size={20} />}
+          </button>
+          <button className="primary-button ask-button" type="submit" disabled={!question.trim()}>
+            <Send aria-hidden="true" size={18} />
+            <span>Ask</span>
+          </button>
+        </div>
+      </form>
+
+      {/* Only takes a row while actually listening — idle shows nothing. */}
+      {session.partialTranscript || listening ? (
+        <p className="transcript-line" aria-live="polite">
+          {session.partialTranscript ? (
+            <>Hearing: &ldquo;{session.partialTranscript}&rdquo;</>
+          ) : (
+            <>Listening for a complete question&hellip;</>
+          )}
+        </p>
+      ) : null}
+
+      {microphoneError ? (
+        <p className="inline-alert" role="alert">
+          <AlertCircle aria-hidden="true" size={18} /> {microphoneError} You can still
+          type the question above.
+        </p>
+      ) : null}
+
+      {board?.questionText ? (
+        <p className="heard-question">&ldquo;{board.questionText}&rdquo;</p>
+      ) : null}
+
       {session.lastError ? (
         <p className="board-notice" role="status">
           <AlertCircle aria-hidden="true" size={18} />
@@ -184,23 +181,22 @@ export function AiBoard({
         </p>
       ) : null}
 
+      {/*
+        Two fixed rows. Row 1 reserves four slots for this question's AI
+        image tiles; row 2 is the default answers, always here. A refresh
+        never clears either row; new pictures upgrade their own tile in place.
+      */}
       {board ? (
         <>
-          <p className="section-label">Quick answers — always here</p>
-          <div className="choice-grid choice-grid--compact">
-            {persistentChoices.map((choice) => renderChoice(choice, true))}
+          <div className="choice-grid choice-grid--ai">
+            {aiChoices.map((choice) => renderChoice(choice))}
           </div>
-          <p className="section-label">Suggestions for this question</p>
-          {suggestionChoices.length > 0 ? (
-            <div className="choice-grid choice-grid--compact">
-              {suggestionChoices.map((choice) => renderChoice(choice, true))}
-            </div>
-          ) : (
-            <p className="board-hint">
-              Ask a question above and the suggestions appear here. The quick
-              answers above keep working the whole time pictures load.
-            </p>
-          )}
+          {aiChoices.length === 0 ? (
+            <p className="ai-row-hint">Ask a question above — its pictures land here.</p>
+          ) : null}
+          <div className="choice-grid choice-grid--quick">
+            {quickChoices.map((choice) => renderChoice(choice))}
+          </div>
         </>
       ) : (
         <div className="empty-board">
@@ -215,8 +211,7 @@ export function AiBoard({
         </div>
       )}
 
-      <div className="quick-actions">
-        <span>Always available</span>
+      <div className="action-rail" aria-label="Always available">
         {actions.map((action) => {
           const config = ACTIONS[action];
           const Icon = config.icon;
@@ -226,13 +221,14 @@ export function AiBoard({
               type="button"
               className={action === "full_board" ? "full-board-action" : undefined}
               onClick={() => onAction(action)}
+              aria-label={config.label}
+              title={config.phrase || config.label}
             >
               {action === "full_board" ? (
                 <LayoutGrid aria-hidden="true" size={16} />
               ) : (
                 <Icon aria-hidden="true" size={16} />
               )}
-              <span>{config.label}</span>
             </button>
           );
         })}

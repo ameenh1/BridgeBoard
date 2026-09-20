@@ -960,6 +960,45 @@ body {
   margin-top: 26px;
 }
 
+/* AI view: everything above the tiles fits in ~150px. */
+.ai-topbar {
+  align-items: baseline;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.ai-topbar h1 {
+  font-family: var(--display);
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 400;
+  margin: 0;
+}
+
+.question-form--compact {
+  margin-top: 12px;
+}
+
+.question-form--compact .question-controls input,
+.question-form--compact .listen-button,
+.question-form--compact .ask-button {
+  font-size: 16px;
+  min-height: 44px;
+}
+
+.question-form--compact .question-controls input {
+  padding: 0 12px;
+}
+
+.listen-button--icon {
+  flex: 0 0 auto;
+  padding: 0 14px;
+}
+
+.ai-view .heard-question {
+  margin-top: 10px;
+}
+
 .question-form > label {
   display: block;
   font-size: 15px;
@@ -1085,13 +1124,21 @@ body {
 }
 
 /*
-   Compact AI grids: quick answers + suggestions share one screen so the board
-   can show up to 4 persistent + 6 AI tiles without scrolling past the question.
+   AI board rows. Row 1 reserves four slots for this question's image tiles;
+   row 2 is the default answers. Fixed four-across so the rows read as rows
+   on a landscape tablet; two-across on narrow screens.
 */
-.choice-grid--compact {
+.choice-grid--ai,
+.choice-grid--quick {
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  margin-top: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.ai-row-hint {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 8px 2px 0;
 }
 
 .section-label {
@@ -1141,14 +1188,61 @@ body {
   box-shadow: 0 0 0 4px rgba(240, 101, 107, 0.16);
 }
 
-.choice-card--compact {
-  gap: 8px;
-  min-height: 160px;
-  padding: 12px 10px;
+/* Dense AI tiles: label-first, picture second in size priority. */
+.choice-card--dense {
+  gap: 6px;
+  min-height: 118px;
+  padding: 10px 8px;
 }
 
-.choice-card--compact .choice-copy strong {
-  font-size: 17px;
+.choice-card--dense .choice-visual {
+  width: min(100%, 84px);
+}
+
+.choice-card--dense .choice-copy strong {
+  font-size: 16px;
+}
+
+.choice-card--dense .choice-copy small {
+  font-size: 12px;
+}
+
+/* Quick answers carry a mint tint instead of a section label. */
+.choice-card.is-persistent {
+  background: var(--mint-wash);
+}
+
+/* Slim icon rail replacing the wrapped "Always available" pills. */
+.action-rail {
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  position: sticky;
+}
+
+.action-rail button {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d3d0ca;
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: 0 12px;
+}
+
+.action-rail button:hover {
+  border-color: var(--green);
+}
+
+.action-rail .full-board-action {
+  background: var(--mint-tint);
+  border-color: var(--green);
+  margin-left: auto;
 }
 
 /*
@@ -1572,7 +1666,8 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
-  .choice-grid--compact {
-    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  .choice-grid--ai,
+  .choice-grid--quick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -15,7 +15,10 @@ const DEFAULT_TURN_DETECTION: Exclude<RealtimeTurnDetection, null> = {
   type: "server_vad",
   threshold: 0.5,
   prefix_padding_ms: 300,
-  silence_duration_ms: 500,
+  // Natural pauses mid-question run longer than half a second. Cutting turns
+  // there splits one question into fragments that can classify alone and
+  // produce a board for half a sentence.
+  silence_duration_ms: 900,
   create_response: false,
   interrupt_response: false,
 };

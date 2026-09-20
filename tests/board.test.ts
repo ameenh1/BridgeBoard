@@ -49,6 +49,25 @@ describe("production board construction", () => {
     expect(board.choices).toHaveLength(2);
   });
 
+  it("organizes an open where-question into catalog places instead of falling back", async () => {
+    const board = await buildRenderableBoard(
+      classification({
+        candidateVocabularyIds: ["place_home", "place_school", "place_outside", "place_car"],
+        explicitVisualConcepts: [],
+        topic: "places",
+      }),
+      DEFAULT_PROFILE,
+      "Where do you want to go to eat?",
+    );
+    expect(board.isFallback).toBe(false);
+    expect(board.choices.map((choice) => choice.label)).toEqual([
+      "Home",
+      "School",
+      "Outside",
+      "Car",
+    ]);
+  });
+
   it("maps body needs to its own board type", async () => {
     const board = await buildRenderableBoard(
       classification({

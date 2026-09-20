@@ -233,6 +233,6 @@ export async function resolveAssetBatch(
       if (!options.signal.aborted) options.onResolution(resolution);
     }
   };
-  const count = Math.max(1, Math.min(options.concurrency ?? 3, 3, requests.length));
+  const count = Math.max(1, Math.min(options.concurrency ?? 3, 6, requests.length));
   await Promise.all(Array.from({ length: count }, worker));
 }

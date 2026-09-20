@@ -215,6 +215,18 @@ function BridgeBoardShell() {
   const stopListening = useCallback(async () => {
     const controller = realtimeController.current;
     realtimeController.current = null;
+    // Commit whatever the caregiver just said: without this the final
+    // utterance sits in the server's audio buffer and dies with the peer
+    // connection, so quick Stop taps hear nothing back.
+    try {
+      controller?.commitTurn();
+    } catch {
+      // The data channel never opened — nothing is buffered.
+    }
+    // Let the committed turn transcribe (about a second), then classify
+    // immediately instead of waiting out the speech-coalescing timer.
+    await new Promise((resolve) => setTimeout(resolve, 1_500));
+    await boardController.current?.flushFinalTranscript();
     setRealtimeState("idle");
     await controller?.stop();
   }, []);

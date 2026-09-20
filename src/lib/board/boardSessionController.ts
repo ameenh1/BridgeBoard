@@ -9,6 +9,7 @@ import type {
 import type { AssetStreamEvent } from "@/lib/assets/types";
 import {
   createWelcomeBoard,
+  isPersistentAiChoice,
   withPersistentChoices,
 } from "./persistentChoices";
 
@@ -60,19 +61,34 @@ function mergeChoice(previous: RenderableChoice | undefined, next: RenderableCho
   return next;
 }
 
+/**
+ * How many AI tiles stay visible at once. New answers go on top and push
+ * older ones down; past this many, the oldest drop off. The quick answers
+ * are separate and never count against this cap.
+ */
+export const MAX_AI_GALLERY_CHOICES = 8;
+
 export function mergeCommittedBoard(
   previous: RenderableBoard | null,
   next: RenderableBoard,
 ): RenderableBoard {
-  // The quick answers are always there: persistent core tiles first (with
-  // ready bundled pictures), then the AI suggestions. Image retention still
-  // happens per-choice by stable assetKey in mergeChoice, so an already-loaded
-  // picture is never replaced by a spinner while new images generate.
-  if (!previous) {
-    return { ...next, choices: withPersistentChoices(next.choices), isRefreshing: false };
-  }
-  const oldByKey = new Map(previous.choices.map((choice) => [choice.choiceKey, choice]));
+  // The AI side is an append-only gallery, not a replacement: this question's
+  // answers go on top and earlier answers move down (up to the gallery cap),
+  // so a generated bathroom is still there after the next question. Image
+  // retention still happens per-choice by stable assetKey in mergeChoice, so
+  // an already-loaded picture is never replaced by a spinner while new images
+  // generate. The quick answers ride along separately via withPersistentChoices.
+  const oldByKey = previous
+    ? new Map(previous.choices.map((choice) => [choice.choiceKey, choice]))
+    : new Map<string, RenderableChoice>();
   const mergedAi = next.choices.map((choice) => mergeChoice(oldByKey.get(choice.choiceKey), choice));
+  const seen = new Set(mergedAi.map((choice) => choice.choiceKey));
+  for (const old of previous?.choices ?? []) {
+    if (mergedAi.length >= MAX_AI_GALLERY_CHOICES) break;
+    if (seen.has(old.choiceKey) || isPersistentAiChoice(old)) continue;
+    seen.add(old.choiceKey);
+    mergedAi.push(mergeChoice(oldByKey.get(old.choiceKey), old));
+  }
   const withPersistent = withPersistentChoices(mergedAi);
   // Re-apply ready-image retention for persistent tiles that were already
   // loaded on the previous board (same assetKey, e.g. Yes/No across boards).

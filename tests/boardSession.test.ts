@@ -138,3 +138,59 @@ describe("persistent quick answers", () => {
     expect(ids).toContain("waffles");
   });
 });
+
+describe("ai gallery", () => {
+  it("keeps earlier answers below the new ones with pictures intact", () => {
+    const first = board("00000000-0000-4000-8000-000000000010", [
+      choice("bathroom", "ready"),
+      choice("drink", "ready"),
+    ]);
+    const second = board("00000000-0000-4000-8000-000000000011", [choice("snack")]);
+    const merged = mergeCommittedBoard(first, second);
+
+    expect(merged.choices.map((item) => item.id)).toEqual([
+      "core_yes",
+      "core_no",
+      "core_more",
+      "core_all_done",
+      "snack",
+      "bathroom",
+      "drink",
+    ]);
+    expect(merged.choices.slice(4).map((item) => item.visual.status)).toEqual([
+      "pending",
+      "ready",
+      "ready",
+    ]);
+    expect(merged.choices[5]?.visual.url).toBe("https://example.com/bathroom");
+  });
+
+  it("dedupes a repeated answer into its newest position", () => {
+    const first = board("00000000-0000-4000-8000-000000000012", [
+      choice("waffles", "ready"),
+      choice("water", "ready"),
+    ]);
+    const second = board("00000000-0000-4000-8000-000000000013", [
+      choice("water"),
+      choice("juice"),
+    ]);
+    const merged = mergeCommittedBoard(first, second);
+    const ai = merged.choices.slice(4).map((item) => item.id);
+
+    expect(ai).toEqual(["water", "juice", "waffles"]);
+    expect(merged.choices[4]?.visual.status).toBe("ready");
+  });
+
+  it("caps the gallery at eight ai tiles, dropping the oldest", () => {
+    const olds = Array.from({ length: 8 }, (_, index) => choice(`old${index}`, "ready"));
+    const first = board("00000000-0000-4000-8000-000000000014", olds);
+    const second = board("00000000-0000-4000-8000-000000000015", [choice("fresh")]);
+    const merged = mergeCommittedBoard(first, second);
+    const ai = merged.choices.slice(4).map((item) => item.id);
+
+    expect(ai).toHaveLength(8);
+    expect(ai[0]).toBe("fresh");
+    expect(ai).toContain("old0");
+    expect(ai).not.toContain("old7");
+  });
+});

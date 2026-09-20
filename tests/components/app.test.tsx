@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeBoardApp } from "@/components/BridgeBoardApp";
@@ -290,6 +290,16 @@ describe("ai board", () => {
     await user.click(screen.getByRole("button", { name: /^ask$/i }));
   }
 
+  it("shows an empty AI row above the default answers before the first question", async () => {
+    const user = userEvent.setup();
+    await enterApp(user);
+    await user.click(screen.getByRole("button", { name: /ai aac/i }));
+    expect(await screen.findByText(/its pictures land here/i)).toBeDefined();
+    for (const label of ["Yes", "No", "more", "all done"]) {
+      expect(screen.getByText(label, { selector: "strong" })).toBeDefined();
+    }
+  });
+
   it("keeps the committed board usable while the next question is pending", async () => {
     const user = userEvent.setup();
     let release: (() => void) | undefined;
@@ -337,10 +347,9 @@ describe("ai board", () => {
     release?.();
 
     // After commit: waffles keeps its ready image and its selection, pancakes
-    // is the only pending tile, dragon fruit is gone.
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: /dragon fruit/i })).toBeNull();
-    });
+    // is the only pending tile, and dragon fruit stays on as gallery history.
+    const committedDragon = await screen.findByRole("button", { name: /dragon fruit/i });
+    expect(committedDragon).not.toBeDisabled();
     const committedWaffles = screen.getByRole("button", { name: /waffles/i });
     expect(committedWaffles.getAttribute("aria-pressed")).toBe("true");
     expect(
@@ -488,6 +497,10 @@ describe("microphone", () => {
     const user = userEvent.setup();
     await enterApp(user);
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
-    expect(screen.getByText(/nothing is listening until you press listen/i)).toBeDefined();
+    // No listening indicator takes a row until Listen is actually pressed.
+    expect(screen.queryByText(/listening for a complete question/i)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /listen for a spoken question/i }),
+    ).toBeDefined();
   });
 });
