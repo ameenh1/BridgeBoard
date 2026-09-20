@@ -32,6 +32,7 @@ import {
   type PersonalPhoto,
 } from "@/lib/storage/personalPhotos";
 import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { fetchSession, signOut } from "@/lib/auth/authClient";
 import type { AuthUser } from "@/types/auth";
 import type { BoardAction, RenderableChoice } from "@/types/board";
@@ -42,6 +43,7 @@ import { AiBoard } from "./AiBoard";
 import { CaregiverScreen } from "./CaregiverScreen";
 import { DefaultBoard } from "./DefaultBoard";
 import { PhotosScreen } from "./PhotosScreen";
+import { SpokenBar } from "./SpokenBar";
 import { HistoryScreen } from "./HistoryScreen";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileGateScreen, SetupScreen } from "./ProfileGateScreen";
@@ -51,6 +53,16 @@ import { createWelcomeBoard } from "@/lib/board/persistentChoices";
 
 type Stage = "login" | "profile" | "setup" | "app";
 type View = "board" | "ai" | "history" | "caregiver" | "settings" | "photos";
+
+/** Named so a screen reader announces the view when focus moves into it. */
+const VIEW_LABELS: Record<View, string> = {
+  board: "Default AAC board",
+  ai: "AI AAC",
+  history: "History",
+  caregiver: "Caregiver",
+  settings: "Settings",
+  photos: "Personal photos",
+};
 
 type Health = {
   classifier: "live" | "unconfigured";
@@ -109,6 +121,12 @@ function BridgeBoardShell() {
   const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+
+  const online = useOnlineStatus();
+  const contentRef = useRef<HTMLDivElement>(null);
+  // Skips the very first render: focusing on load would steal focus from the
+  // page before anyone has asked for a view change.
+  const viewHasChanged = useRef(false);
 
   const boardController = useRef<BoardSessionController | null>(null);
   const realtimeController = useRef<RealtimeTranscriptionController | null>(null);
@@ -170,6 +188,18 @@ function BridgeBoardShell() {
     },
     [],
   );
+
+  // Moving between screens leaves focus wherever it was, so a keyboard or
+  // switch user has to tab from the top of the document every time. Focusing
+  // the new view also makes a screen reader read its heading, which is how a
+  // view change gets announced at all.
+  useEffect(() => {
+    if (!viewHasChanged.current) {
+      viewHasChanged.current = true;
+      return;
+    }
+    contentRef.current?.focus();
+  }, [view]);
 
   const say = useCallback((phrase: string) => {
     const text = phrase.trim();
@@ -416,7 +446,15 @@ function BridgeBoardShell() {
         session and any in-flight asset streams live in the shell, so coming
         back to AI AAC shows the same board with the same resolved pictures.
       */}
-      <div className="app-content">
+      <SpokenBar phrase={lastSpoken} muted={!profile.speechEnabled || profile.quietMode} />
+
+      <div
+        className="app-content"
+        ref={contentRef}
+        tabIndex={-1}
+        role="region"
+        aria-label={VIEW_LABELS[view]}
+      >
         {view === "board" ? (
           <DefaultBoard
             profile={profile}
@@ -431,6 +469,7 @@ function BridgeBoardShell() {
             session={personalizedSession}
             profile={profile}
             realtimeState={realtimeState}
+            online={online}
             microphoneError={microphoneError}
             onSubmitQuestion={submitQuestion}
             onToggleListening={toggleListening}
