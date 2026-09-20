@@ -390,7 +390,6 @@ function BridgeBoardShell() {
           onClick={() => setView("board")}
           aria-label="BridgeBoard home"
         >
-          <span className="brand-mark" aria-hidden="true">B</span>
           BridgeBoard
         </button>
 
