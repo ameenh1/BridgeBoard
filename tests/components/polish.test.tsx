@@ -5,6 +5,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BridgeBoardApp } from "@/components/BridgeBoardApp";
 import { DEFAULT_PROFILE } from "@/types/profile";
 
+const cloudState = vi.hoisted(() => ({
+  user: { id: "u1", email: "caregiver@example.com" },
+  profile: null as typeof DEFAULT_PROFILE | null,
+}));
+
+vi.mock("@/lib/storage/cloud", () => ({
+  getCurrentUser: vi.fn(async () => cloudState.user),
+  loadCloudProfile: vi.fn(async () => cloudState.profile),
+  loadCloudHistory: vi.fn(async () => []),
+  saveCloudProfile: vi.fn(async (_userId: string, profile: typeof DEFAULT_PROFILE) => profile),
+  saveCloudHistory: vi.fn(async () => undefined),
+  clearCloudHistory: vi.fn(async () => undefined),
+  signOutCloud: vi.fn(async () => undefined),
+}));
+
 function stubHealth() {
   vi.stubGlobal(
     "fetch",
@@ -21,31 +36,37 @@ function setOnline(value: boolean) {
   Object.defineProperty(window.navigator, "onLine", { value, configurable: true });
 }
 
-function enterApp(profile: Partial<typeof DEFAULT_PROFILE> = {}) {
-  window.localStorage.setItem(
-    "bridgeboard.profile.v1",
-    JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha", ...profile }),
-  );
-  window.sessionStorage.setItem("bridgeboard.localSession", "1");
+async function enterApp(profile: Partial<typeof DEFAULT_PROFILE> = {}) {
+  cloudState.profile = {
+    ...DEFAULT_PROFILE,
+    id: "11111111-1111-4111-8111-111111111111",
+    displayName: "Cha",
+    ...profile,
+  };
   render(<BridgeBoardApp />);
+  await screen.findByRole("heading", { name: /who is communicating today/i });
+  screen.getByRole("button", { name: /cha/i }).click();
 }
 
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   setOnline(true);
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-key");
   stubHealth();
 });
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("spoken confirmation", () => {
   it("shows what was said", async () => {
     const user = userEvent.setup();
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -58,7 +79,7 @@ describe("spoken confirmation", () => {
 
   it("is the only output in quiet mode, and says so", async () => {
     const user = userEvent.setup();
-    enterApp({ quietMode: true });
+    await enterApp({ quietMode: true });
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -72,7 +93,7 @@ describe("spoken confirmation", () => {
 
   it("says 'Said' when speech is on", async () => {
     const user = userEvent.setup();
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -81,7 +102,7 @@ describe("spoken confirmation", () => {
   });
 
   it("is empty before anything is said", async () => {
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
     expect(document.querySelector(".spoken-bar")?.textContent).toBe("");
   });
@@ -91,7 +112,7 @@ describe("offline", () => {
   it("explains that the AI needs a network and the board does not", async () => {
     const user = userEvent.setup();
     setOnline(false);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
@@ -102,7 +123,7 @@ describe("offline", () => {
   it("disables Listen so it cannot fail as a fake microphone error", async () => {
     const user = userEvent.setup();
     setOnline(false);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
 
@@ -112,7 +133,7 @@ describe("offline", () => {
   it("leaves the manual board fully usable", async () => {
     const user = userEvent.setup();
     setOnline(false);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -125,7 +146,7 @@ describe("offline", () => {
   it("recovers when the connection returns", async () => {
     const user = userEvent.setup();
     setOnline(false);
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /ai aac/i }));
     expect(screen.getByRole("button", { name: /listen/i })).toBeDisabled();
@@ -143,7 +164,7 @@ describe("offline", () => {
 describe("focus and announcement on view change", () => {
   it("moves focus into the new view and names it", async () => {
     const user = userEvent.setup();
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /history/i }));
@@ -155,14 +176,14 @@ describe("focus and announcement on view change", () => {
   });
 
   it("does not steal focus on first load", async () => {
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
     expect(document.activeElement).toBe(document.body);
   });
 
   it("names each view it moves into", async () => {
     const user = userEvent.setup();
-    enterApp();
+    await enterApp();
     await screen.findByRole("navigation", { name: /main/i });
 
     await user.click(screen.getByRole("button", { name: /ai aac/i }));

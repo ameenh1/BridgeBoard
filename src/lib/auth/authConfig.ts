@@ -21,7 +21,9 @@ export type AuthConfig = {
 
 export function getAuthConfig(): AuthConfig | null {
   const url = process.env.SUPABASE_URL?.trim();
-  const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+  const publishableKey = (
+    process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )?.trim();
   if (!url || !publishableKey) return null;
   return { url, publishableKey };
 }

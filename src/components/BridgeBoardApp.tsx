@@ -20,11 +20,18 @@ import {
 } from "@/lib/storage/history";
 import {
   clearSettings,
-  hasStoredSettings,
   loadSettings,
   updateSettings,
 } from "@/lib/storage/settings";
-import { endLocalSession, hasLocalSession, startLocalSession } from "@/lib/storage/localSession";
+import {
+  clearCloudHistory,
+  getCurrentUser,
+  loadCloudHistory,
+  loadCloudProfile,
+  saveCloudHistory,
+  saveCloudProfile,
+  signOutCloud,
+} from "@/lib/storage/cloud";
 import {
   clearPersonalPhotos,
   loadPersonalPhotos,
@@ -33,8 +40,6 @@ import {
 } from "@/lib/storage/personalPhotos";
 import { applyPersonalPhotos } from "@/lib/board/applyPersonalPhotos";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
-import { fetchSession, signOut } from "@/lib/auth/authClient";
-import type { AuthUser } from "@/types/auth";
 import type { BoardAction, RenderableChoice } from "@/types/board";
 import type { ChildProfile } from "@/types/profile";
 import { DEFAULT_PROFILE, serverProfileFields } from "@/types/profile";
@@ -62,11 +67,6 @@ const VIEW_LABELS: Record<View, string> = {
   caregiver: "Caregiver",
   settings: "Settings",
   photos: "Personal photos",
-};
-
-type Health = {
-  classifier: "live" | "unconfigured";
-  sharedCache: "configured" | "optional_unconfigured";
 };
 
 function makeInitialSession(): BoardSessionState {
@@ -107,10 +107,8 @@ export function BridgeBoardApp() {
  * would throw away the active board and every picture already resolved for it.
  */
 function BridgeBoardShell() {
-  // Safe as lazy initialisers: this component only ever mounts in the browser.
-  const [stage, setStage] = useState<Stage>(() =>
-    !hasLocalSession() ? "login" : hasStoredSettings() ? "app" : "setup",
-  );
+  const [stage, setStage] = useState<Stage>("login");
+  const [authReady, setAuthReady] = useState(false);
   const [view, setView] = useState<View>("board");
   const [profile, setProfile] = useState<ChildProfile>(() => loadSettings());
   const [history, setHistory] = useState<CommunicationHistoryEntry[]>(() => loadHistory());
@@ -118,9 +116,8 @@ function BridgeBoardShell() {
   const [session, setSession] = useState<BoardSessionState>(makeInitialSession);
   const [realtimeState, setRealtimeState] = useState<RealtimeTranscriptionState>("idle");
   const [microphoneError, setMicrophoneError] = useState<string>();
-  const [health, setHealth] = useState<Health>();
   const [lastSpoken, setLastSpoken] = useState("");
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
 
   const online = useOnlineStatus();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -133,6 +130,27 @@ function BridgeBoardShell() {
   // Read inside callbacks that must not be re-created when settings change —
   // notably `say`, which the controllers close over.
   const profileRef = useRef(profile);
+
+  const openAccount = useCallback(async (user: { id: string; email?: string | null }) => {
+    const [cloudProfile, cloudHistory] = await Promise.all([
+      loadCloudProfile(user.id),
+      loadCloudHistory(user.id),
+    ]);
+    const nextProfile = cloudProfile ?? DEFAULT_PROFILE;
+    setAuthUser({ id: user.id, email: user.email ?? "" });
+    setProfile(nextProfile);
+    updateSettings(nextProfile);
+    setHistory(cloudHistory);
+    clearHistory();
+    for (const entry of cloudHistory) appendHistory(entry, true);
+    setStage(cloudProfile ? "profile" : "setup");
+    setView("board");
+  }, []);
+
+  const handleAuthenticated = useCallback(async () => {
+    const user = await getCurrentUser();
+    if (user) await openAccount(user);
+  }, [openAccount]);
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
@@ -150,34 +168,19 @@ function BridgeBoardShell() {
   }, []);
 
   useEffect(() => {
-    const aborter = new AbortController();
-    void fetch("/api/health", { signal: aborter.signal })
-      .then((response) => (response.ok ? (response.json() as Promise<Health>) : null))
-      .then((result) => {
-        if (result) setHealth(result);
+    let cancelled = false;
+    void getCurrentUser()
+      .then(async (user) => {
+        if (user) await openAccount(user);
+        if (!cancelled) setAuthReady(true);
       })
-      .catch(() => undefined);
-    return () => aborter.abort();
-  }, []);
-
-  /**
-   * Restores a signed-in session on a return visit. An unreachable or absent
-   * session is not an error and is never surfaced: the shell simply stays on
-   * whatever stage the local state chose, so the board remains one tap away
-   * whether or not accounts are working.
-   */
-  useEffect(() => {
-    const aborter = new AbortController();
-    void fetchSession(aborter.signal).then((result) => {
-      if (result.status !== "signed_in") return;
-      setAuthUser(result.user);
-      startLocalSession();
-      setStage((current) =>
-        current === "login" ? (hasStoredSettings() ? "profile" : "setup") : current,
-      );
-    });
-    return () => aborter.abort();
-  }, []);
+      .catch(() => {
+        if (!cancelled) setAuthReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [openAccount]);
 
   // Releases the microphone if the tab closes or the shell unmounts while a
   // session is live. Nothing should keep listening past this component.
@@ -211,8 +214,9 @@ function BridgeBoardShell() {
   const patchProfile = useCallback((patch: Partial<ChildProfile>) => {
     const next = updateSettings(patch);
     setProfile(next);
+    if (authUser) void saveCloudProfile(authUser.id, next);
     if (patch.quietMode || patch.speechEnabled === false) cancelSpeech();
-  }, []);
+  }, [authUser]);
 
   const record = useCallback(
     (entry: Omit<CommunicationHistoryEntry, "id" | "timestamp">) => {
@@ -220,8 +224,12 @@ function BridgeBoardShell() {
       if (!current.historyEnabled) return;
       appendHistory(entry, true);
       setHistory(loadHistory());
+      if (authUser) {
+        const full = loadHistory().at(-1);
+        if (full) void saveCloudHistory(authUser.id, profileRef.current.id, full);
+      }
     },
-    [],
+    [authUser],
   );
 
   const chooseVocabulary = useCallback(
@@ -298,11 +306,14 @@ function BridgeBoardShell() {
   );
 
   const finishSetup = useCallback((next: ChildProfile) => {
-    const saved = updateSettings(next);
-    setProfile(saved);
-    setStage("app");
-    setView("board");
-  }, []);
+    void (async () => {
+      const saved = authUser ? await saveCloudProfile(authUser.id, next) : next;
+      updateSettings(saved);
+      setProfile(saved);
+      setStage("app");
+      setView("board");
+    })();
+  }, [authUser]);
 
   const resetProfile = useCallback(() => {
     if (!window.confirm("Reset this profile? Settings, history and personal photos on this device will be erased.")) {
@@ -312,9 +323,7 @@ function BridgeBoardShell() {
     clearSettings();
     clearHistory();
     clearPersonalPhotos();
-    endLocalSession();
-    // Resetting the device should not leave an account still signed in on it.
-    void signOut();
+    void signOutCloud();
     setAuthUser(null);
     setProfile(DEFAULT_PROFILE);
     setHistory([]);
@@ -330,9 +339,8 @@ function BridgeBoardShell() {
    */
   const handleSignOut = useCallback(() => {
     void stopListening();
-    void signOut();
+    void signOutCloud();
     setAuthUser(null);
-    endLocalSession();
     setStage("login");
     setView("board");
   }, [stopListening]);
@@ -341,20 +349,15 @@ function BridgeBoardShell() {
     if (!window.confirm("Clear the history saved on this device?")) return;
     clearHistory();
     setHistory([]);
-  }, []);
+    if (authUser) void clearCloudHistory(authUser.id);
+  }, [authUser]);
+
+  if (!authReady) return <main className="boot-screen" aria-busy="true" />;
 
   if (stage === "login") {
     return (
       <LoginScreen
-        onContinue={() => {
-          startLocalSession();
-          setStage(hasStoredSettings() ? "profile" : "setup");
-        }}
-        onSignedIn={(user) => {
-          setAuthUser(user);
-          startLocalSession();
-          setStage(hasStoredSettings() ? "profile" : "setup");
-        }}
+        onAuthenticated={() => void handleAuthenticated()}
       />
     );
   }
@@ -400,7 +403,6 @@ function BridgeBoardShell() {
           onClick={() => setView("board")}
           aria-label="BridgeBoard home"
         >
-          <span className="brand-mark" aria-hidden="true">B</span>
           BridgeBoard
         </button>
 
@@ -417,7 +419,6 @@ function BridgeBoardShell() {
         </nav>
 
         <div className="nav-right">
-          <HealthBadge health={health} />
           <button className="profile-pill" type="button" onClick={() => setView("caregiver")}>
             <span className="mini-avatar" aria-hidden="true">
               {(name[0] ?? "B").toUpperCase()}
@@ -528,22 +529,6 @@ function NavButton({
     >
       {children}
     </button>
-  );
-}
-
-/**
- * Says whether the AI side is usable without ever naming which credential is
- * absent. "AI setup required" is actionable for whoever deployed it and
- * meaningless to anyone else.
- */
-function HealthBadge({ health }: { health: Health | undefined }) {
-  if (!health) return null;
-  const live = health.classifier === "live";
-  return (
-    <span className={`status-badge${live ? " is-live" : ""}`}>
-      <span className="status-dot" aria-hidden="true" />
-      {live ? "AI ready" : "AI setup required"}
-    </span>
   );
 }
 

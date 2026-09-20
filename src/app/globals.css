@@ -39,7 +39,7 @@
   --card-text-only: #fefaf0;
 
   --display: var(--font-display), "Francois One", Impact, sans-serif;
-  --body-display: "Arial Narrow", "Franklin Gothic Book", Arial, sans-serif;
+  --body-display: "Franklin Gothic Book";
 
   /* WCAG 2.5.5 floor. The frontend shipped 42px composer buttons. */
   --tap-min: 44px;
@@ -187,29 +187,33 @@ body {
 }
 
 .login-form {
+  letter-spacing: 0.01em;
   width: min(520px, 100%);
 }
 
 .login-form h2 {
   font-family: var(--display);
-  font-size: clamp(30px, 3.6vw, 52px);
+  font-size: clamp(32px, 3.8vw, 56px);
   font-weight: 400;
+  letter-spacing: -0.01em;
   line-height: 1;
   margin: 0 0 14px;
 }
 
 .login-form > p {
   font-family: var(--body-display);
-  font-size: 18px;
+  font-size: 20px;
   margin: 0 0 34px;
   opacity: 0.72;
 }
 
 .login-form label {
   display: block;
-  font-size: 16px;
+  font-family: "Franklin Gothic Book";
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
+  letter-spacing: 0.015em;
+  margin-bottom: 10px;
 }
 
 .login-form input {
@@ -218,9 +222,11 @@ body {
   border-radius: 3px;
   display: block;
   font: inherit;
-  font-size: 18px;
-  height: 60px;
-  padding: 0 14px;
+  font-family: "Franklin Gothic Book";
+  font-size: 20px;
+  height: 68px;
+  letter-spacing: 0.015em;
+  padding: 0 16px;
   width: 100%;
 }
 
@@ -228,7 +234,7 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 18px;
 }
 
 .continue-button {
@@ -239,10 +245,11 @@ body {
   cursor: pointer;
   display: block;
   font: inherit;
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 700;
-  height: 60px;
-  margin-top: 24px;
+  height: 68px;
+  letter-spacing: 0.015em;
+  margin-top: 20px;
   width: 100%;
 }
 
@@ -316,6 +323,99 @@ body {
   line-height: 1.5;
   margin: 18px 0 0;
 }
+
+.login-form > p,
+.signup-prompt {
+  font-family: "Franklin Gothic Book";
+  letter-spacing: 0.01em;
+}
+
+#email {
+  font-size: 24px;
+  letter-spacing: 0.025em;
+}
+
+.signup-prompt {
+  font-size: 18px !important;
+  margin: 20px 0 0 !important;
+  text-align: center;
+}
+
+.signup-prompt button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.auth-error,
+.auth-notice {
+  align-items: flex-start;
+  border-radius: 10px;
+  display: flex;
+  font-family: "Franklin Gothic Book";
+  font-size: 17px;
+  gap: 10px;
+  line-height: 1.4;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+}
+
+.auth-error {
+  background: #fff1ef;
+  border: 1px solid #f0b8b3;
+  color: #7f3736;
+}
+
+.auth-notice {
+  background: #eefaf2;
+  border: 1px solid #b9dfc3;
+  color: #356b47;
+}
+
+.auth-error > div,
+.auth-notice > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-error strong { color: #71302f; }
+.auth-notice strong { color: #285c3a; }
+
+.auth-error button {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: #a84443;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  margin-top: 3px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.auth-error-icon,
+.auth-notice-icon {
+  align-items: center;
+  border-radius: 50%;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  height: 20px;
+  justify-content: center;
+  line-height: 1;
+  margin-top: 1px;
+  width: 20px;
+}
+
+.auth-error-icon { background: #df6866; }
+.auth-notice-icon { background: #61b379; }
 
 /* ==========================================================================
    Profile + setup

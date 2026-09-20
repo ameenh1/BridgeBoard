@@ -9,6 +9,38 @@ import { DEFAULT_PROFILE } from "@/types/profile";
 import type { RenderableBoard, RenderableChoice } from "@/types/board";
 import { spokenPhrases } from "../setup";
 
+const cloudState = vi.hoisted(() => ({
+  user: null as { id: string; email: string } | null,
+  signInUser: null as { id: string; email: string } | null,
+  profile: null as typeof DEFAULT_PROFILE | null,
+  history: [] as Array<Record<string, unknown>>,
+}));
+
+vi.mock("@/lib/storage/cloud", () => ({
+  getCurrentUser: vi.fn(async () => cloudState.user),
+  loadCloudProfile: vi.fn(async () => cloudState.profile),
+  loadCloudHistory: vi.fn(async () => cloudState.history),
+  saveCloudProfile: vi.fn(async (_userId: string, profile: typeof DEFAULT_PROFILE) => {
+    cloudState.profile = profile;
+    return profile;
+  }),
+  saveCloudHistory: vi.fn(async (_userId: string, _profileId: string | undefined, entry: Record<string, unknown>) => {
+    cloudState.history.push(entry);
+  }),
+  clearCloudHistory: vi.fn(async () => undefined),
+  signOutCloud: vi.fn(async () => {
+    cloudState.user = null;
+  }),
+  signInWithPassword: vi.fn(async () => cloudState.signInUser
+    ? (cloudState.user = cloudState.signInUser, { user: cloudState.signInUser, error: null, needsEmailConfirmation: false })
+    : { user: null, error: new Error("invalid login credentials"), needsEmailConfirmation: false }),
+  signUpWithPassword: vi.fn(async () => ({
+    user: null,
+    error: null,
+    needsEmailConfirmation: true,
+  })),
+}));
+
 const BOARD_ID = "22222222-2222-4222-8222-222222222222";
 
 function choice(key: string, assetKey: string, ready = false): RenderableChoice {
@@ -91,6 +123,12 @@ function jsonBoard(next: RenderableBoard) {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://test.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "test-key");
+  cloudState.user = null;
+  cloudState.signInUser = null;
+  cloudState.profile = null;
+  cloudState.history = [];
   setAuthResponse(() => ({ status: "anonymous" }));
   stubFetch([]);
 });
@@ -98,145 +136,66 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 /** Gets past login + setup into the app, with the given stored profile. */
 async function enterApp(user: ReturnType<typeof userEvent.setup>) {
-  window.localStorage.setItem(
-    "bridgeboard.profile.v1",
-    JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha" }),
-  );
-  window.sessionStorage.setItem("bridgeboard.localSession", "1");
+  cloudState.user = { id: "u1", email: "caregiver@example.com" };
+  cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha" };
   render(<BridgeBoardApp />);
+  await screen.findByRole("heading", { name: /who is communicating today/i });
+  await user.click(screen.getByRole("button", { name: /cha/i }));
   await screen.findByRole("navigation", { name: /main/i });
   return user;
 }
 
 describe("login", () => {
-  it("continues locally with both fields blank and transmits nothing", async () => {
+  it("requires an account before entering the board", async () => {
     const user = userEvent.setup();
-    const calls = stubFetch([]);
     render(<BridgeBoardApp />);
 
     expect(await screen.findByLabelText("Email")).toHaveValue("");
-    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
-
-    // Straight to setup, and no request carried anything from the form.
-    await screen.findByRole("heading", { name: /set up this board/i });
-    expect(calls.every((call) => !JSON.stringify(call.body ?? {}).includes("@"))).toBe(true);
+    expect(screen.queryByRole("button", { name: /continue without an account/i })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(await screen.findByRole("alert")).toBeDefined();
   });
 
-  it("never sends or stores what was typed into the credential fields", async () => {
+  it("creates an account and asks for email confirmation", async () => {
     const user = userEvent.setup();
-    const calls = stubFetch([]);
+    render(<BridgeBoardApp />);
+
+    await user.click(await screen.findByRole("button", { name: /sign up/i }));
+    await user.type(screen.getByLabelText("Email"), "someone@example.com");
+    await user.type(screen.getByLabelText("Password"), "a secure password");
+    await user.click(screen.getByRole("button", { name: /create account/i }));
+    expect(await screen.findByRole("status")).toHaveTextContent(/check your email/i);
+  });
+
+  it("offers sign-up after a failed sign-in", async () => {
+    const user = userEvent.setup();
     render(<BridgeBoardApp />);
 
     await user.type(await screen.findByLabelText("Email"), "someone@example.com");
-    await user.type(screen.getByLabelText("Password"), "hunter2");
-    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
-    await screen.findByRole("heading", { name: /set up this board/i });
-
-    const everything = JSON.stringify({
-      calls,
-      local: { ...window.localStorage },
-      session: { ...window.sessionStorage },
-    });
-    expect(everything).not.toContain("someone@example.com");
-    expect(everything).not.toContain("hunter2");
-    // Only the non-sensitive flag is kept.
-    expect(window.sessionStorage.getItem("bridgeboard.localSession")).toBe("1");
-  });
-
-  it("shows the saved profile instead of setup when one exists", async () => {
-    const user = userEvent.setup();
-    window.localStorage.setItem(
-      "bridgeboard.profile.v1",
-      JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha" }),
-    );
-    render(<BridgeBoardApp />);
-
-    await user.click(await screen.findByRole("button", { name: /continue without an account/i }));
-    expect(await screen.findByText("Cha")).toBeDefined();
+    await user.type(screen.getByLabelText("Password"), "wrong-password");
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    expect(await screen.findByText(/account not found/i)).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /create an account/i }));
+    expect(screen.getByRole("heading", { name: /create your account/i })).toBeDefined();
   });
 
   it("signs in and enters the app", async () => {
     const user = userEvent.setup();
-    setAuthResponse((url) =>
-      url.includes("/login")
-        ? { status: "signed_in", user: { id: "u1", email: "caregiver@example.com" } }
-        : { status: "anonymous" },
-    );
-    const calls = stubFetch([]);
+    cloudState.signInUser = { id: "u1", email: "caregiver@example.com" };
+    cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha" };
     render(<BridgeBoardApp />);
 
     await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
     await user.type(screen.getByLabelText("Password"), "a good password");
-    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
-
-    await screen.findByRole("heading", { name: /set up this board/i });
-    const login = calls.find((call) => call.url.includes("/api/auth/login"));
-    expect(login?.body).toEqual({
-      email: "caregiver@example.com",
-      password: "a good password",
-    });
-  });
-
-  it("surfaces a failed sign-in without blocking the local path", async () => {
-    const user = userEvent.setup();
-    setAuthResponse((url) =>
-      url.includes("/login")
-        ? { status: "error", message: "That email and password don't match an account." }
-        : { status: "anonymous" },
-    );
-    stubFetch([]);
-    render(<BridgeBoardApp />);
-
-    await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
-    await user.type(screen.getByLabelText("Password"), "wrong");
-    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
-
-    expect(await screen.findByText(/don't match an account/i)).toBeDefined();
-
-    // The whole point: a rejected sign-in still leaves the board one tap away.
-    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
-    await screen.findByRole("heading", { name: /set up this board/i });
-  });
-
-  it("reaches the board even when the auth service is unreachable", async () => {
-    const user = userEvent.setup();
-    const impl = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/auth/")) throw new TypeError("Failed to fetch");
-      return new Response(JSON.stringify({ classifier: "live" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    });
-    vi.stubGlobal("fetch", impl);
-    render(<BridgeBoardApp />);
-
-    await user.type(await screen.findByLabelText("Email"), "caregiver@example.com");
-    await user.type(screen.getByLabelText("Password"), "a good password");
-    await user.click(screen.getByRole("button", { name: /^sign in$/i }));
-
-    expect(await screen.findByText(/aren't reachable right now/i)).toBeDefined();
-    await user.click(screen.getByRole("button", { name: /continue without an account/i }));
-    await screen.findByRole("heading", { name: /set up this board/i });
-  });
-
-  it("skips the login screen when a session is already live", async () => {
-    window.localStorage.setItem(
-      "bridgeboard.profile.v1",
-      JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha" }),
-    );
-    setAuthResponse(() => ({
-      status: "signed_in",
-      user: { id: "u1", email: "caregiver@example.com" },
-    }));
-    stubFetch([]);
-    render(<BridgeBoardApp />);
-
-    expect(await screen.findByText("Cha")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: /continue/i }));
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
+    expect(await screen.findByRole("navigation", { name: /main/i })).toBeDefined();
   });
 });
 
@@ -414,6 +373,8 @@ describe("settings and history", () => {
 
     cleanup();
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /cha/i }));
     await user.click(await screen.findByRole("button", { name: /open settings/i }));
@@ -429,6 +390,8 @@ describe("settings and history", () => {
 
     cleanup();
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
     await user.click(screen.getByRole("button", { name: /history/i }));
     expect(await screen.findByText("want")).toBeDefined();
@@ -436,12 +399,11 @@ describe("settings and history", () => {
 
   it("records nothing when history is turned off", async () => {
     const user = userEvent.setup();
-    window.localStorage.setItem(
-      "bridgeboard.profile.v1",
-      JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha", historyEnabled: false }),
-    );
-    window.sessionStorage.setItem("bridgeboard.localSession", "1");
+    cloudState.user = { id: "u1", email: "caregiver@example.com" };
+    cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha", historyEnabled: false };
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });
@@ -453,12 +415,11 @@ describe("settings and history", () => {
 
   it("silences speech in quiet mode", async () => {
     const user = userEvent.setup();
-    window.localStorage.setItem(
-      "bridgeboard.profile.v1",
-      JSON.stringify({ ...DEFAULT_PROFILE, displayName: "Cha", quietMode: true }),
-    );
-    window.sessionStorage.setItem("bridgeboard.localSession", "1");
+    cloudState.user = { id: "u1", email: "caregiver@example.com" };
+    cloudState.profile = { ...DEFAULT_PROFILE, id: "11111111-1111-4111-8111-111111111111", displayName: "Cha", quietMode: true };
     render(<BridgeBoardApp />);
+    await screen.findByRole("heading", { name: /who is communicating today/i });
+    await user.click(screen.getByRole("button", { name: /cha/i }));
     await screen.findByRole("navigation", { name: /main/i });
 
     const core = screen.getByRole("region", { name: "Core words" });

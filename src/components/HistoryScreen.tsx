@@ -19,11 +19,11 @@ export function HistoryScreen({
     <section className="simple-view">
       <div className="view-heading">
         <div>
-          <span className="eyebrow">On this device</span>
+          <span className="eyebrow">Your account</span>
           <h1>History</h1>
           <p>
             {historyEnabled
-              ? "Choices made on this device. Never uploaded, never includes audio."
+              ? "Choices made on your board. Saved to your account, never includes audio."
               : "History is turned off in Settings, so nothing new is being recorded."}
           </p>
         </div>

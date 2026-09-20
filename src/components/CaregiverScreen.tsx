@@ -77,7 +77,7 @@ export function CaregiverScreen({
           <h2>Display and speech</h2>
           <p>
             Button size, labels, speaking speed, voice, quiet mode and history
-            are all adjustable, and are stored on this device only.
+            are all adjustable and saved to your account when you are signed in.
           </p>
           <button className="secondary-button" type="button" onClick={onOpenSettings}>
             Open settings
