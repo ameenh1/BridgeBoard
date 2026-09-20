@@ -46,8 +46,8 @@ export function AiBoard({
   const [question, setQuestion] = useState("");
   const board = session.board;
   const listening = realtimeState === "connecting" || realtimeState === "connected";
-  // Row 1: this question's AI image tiles. Row 2: the default answers.
-  const aiChoices = board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? [];
+  // Row 1: four slots for this question's AI image tiles. Row 2: the default answers.
+  const aiChoices = (board?.choices.filter((choice) => !isPersistentAiChoice(choice)) ?? []).slice(0, 4);
   const quickChoices = board?.choices.filter(isPersistentAiChoice) ?? [];
 
   function renderChoice(choice: RenderableChoice) {
@@ -184,27 +184,30 @@ export function AiBoard({
         </p>
       ) : null}
 
-      {/*
-        Two fixed rows. Row 1 reserves four slots for this question's AI
-        image tiles; row 2 is the default answers, always here. A refresh
-        never clears either row; new pictures upgrade their own tile in place.
-      */}
+      {/* Two fixed rows. The caregiver's generated choices fill the four slots
+          above the always-available default answers. */}
       {board ? (
-        <>
-          <div className="choice-grid choice-grid--quick" aria-label="Quick answers">
-            {quickChoices.map((choice) => renderChoice(choice))}
-          </div>
+        <div className="ai-choice-area">
           <div className="choice-grid choice-grid--ai">
             {aiChoices.map((choice) => renderChoice(choice))}
+            {Array.from({ length: Math.max(0, 4 - aiChoices.length) }).map((_, index) => (
+              <div
+                className="ai-choice-slot"
+                key={`empty-ai-slot-${index}`}
+                aria-label="Empty caregiver choice slot"
+              >
+                <Sparkles aria-hidden="true" size={24} />
+                <span>Waiting for a question</span>
+              </div>
+            ))}
           </div>
           {session.isRefreshing ? (
             <p className="ai-row-hint">Updating choices…</p>
-          ) : aiChoices.length === 0 ? (
-            <p className="ai-row-hint">
-              Ask a question above — its pictures land here.
-            </p>
           ) : null}
-        </>
+          <div className="choice-grid choice-grid--quick" aria-label="Quick answers">
+            {quickChoices.map((choice) => renderChoice(choice))}
+          </div>
+        </div>
       ) : (
         <div className="empty-board">
           <span className="empty-icon" aria-hidden="true">

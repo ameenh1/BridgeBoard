@@ -830,6 +830,11 @@ body {
   overflow: auto;
 }
 
+/* The AI board is designed as a single-screen communication surface. */
+.app-content:has(.ai-view) {
+  overflow: hidden;
+}
+
 /* ==========================================================================
    Default AAC board
    ========================================================================== */
@@ -1078,6 +1083,15 @@ body {
   text-align: center;
 }
 
+.ai-view {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .ai-capture-heading p {
   color: var(--muted);
   font-size: 16px;
@@ -1281,20 +1295,45 @@ body {
   margin-top: 22px;
 }
 
-/*
-   AI board rows. Row 1 reserves four slots for this question's image tiles;
-   row 2 is the default answers. Fixed four-across so the rows read as rows
-   on a landscape tablet; two-across on narrow screens.
-*/
+/* AI board rows: four caregiver-generated slots above four default answers. */
+.ai-choice-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
 .choice-grid--ai,
 .choice-grid--quick {
   gap: 10px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .choice-grid--quick {
-  margin-top: 26px;
+  flex: 0 0 auto;
+}
+
+.choice-grid--ai {
+  flex: 0 0 auto;
+}
+
+.ai-choice-slot {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.54);
+  border: 2px dashed #c8d9d5;
+  border-radius: 18px;
+  color: #91a6a1;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: center;
+  min-height: 118px;
+  padding: 10px 8px;
+  text-align: center;
 }
 
 .choice-card--quick {
@@ -1405,11 +1444,10 @@ body {
 
 /* Slim icon rail replacing the wrapped "Always available" pills. */
 .action-rail {
-  bottom: 0;
   display: flex;
   gap: 8px;
-  margin-top: 16px;
-  position: sticky;
+  flex: 0 0 auto;
+  margin-top: 12px;
 }
 
 .action-rail button {
@@ -1807,26 +1845,7 @@ body {
   }
 }
 
-/*
-   Below this width the fixed four-row viewport board stops being legible, so
-   it scrolls instead of shrinking tiles past a usable size. A board you have
-   to scroll beats a board you cannot hit.
-*/
 @media (max-width: 560px) {
-  .app-page {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
-  .app-content {
-    overflow: visible;
-  }
-
-  .board-view {
-    height: auto;
-  }
-
   .aac-content {
     grid-template-rows: none;
     padding: 8px 12px;
@@ -1870,7 +1889,20 @@ body {
 
   .choice-grid--ai,
   .choice-grid--quick {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ai-choice-area {
+    gap: 6px;
+  }
+
+  .ai-choice-slot,
+  .choice-card--quick {
+    min-height: 104px;
+  }
+
+  .choice-card--quick .choice-copy strong {
+    font-size: 17px;
   }
 }
 

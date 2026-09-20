@@ -114,8 +114,8 @@ describe("persistent quick answers", () => {
     expect(getPersistentAiChoices().map((item) => item.id)).toEqual([
       "core_yes",
       "core_no",
-      "core_want",
       "core_more",
+      "core_all_done",
     ]);
   });
 
@@ -129,12 +129,12 @@ describe("persistent quick answers", () => {
     expect(controller.getState().board?.choices.map((item) => item.id)).toEqual([
       "core_yes",
       "core_no",
-      "core_want",
       "core_more",
+      "core_all_done",
     ]);
     await controller.submitQuestion("Would you like waffles?");
     const ids = controller.getState().board?.choices.map((item) => item.id) ?? [];
-    expect(ids.slice(0, 4)).toEqual(["core_yes", "core_no", "core_want", "core_more"]);
+    expect(ids.slice(0, 4)).toEqual(["core_yes", "core_no", "core_more", "core_all_done"]);
     expect(ids).toContain("waffles");
   });
 });
@@ -151,8 +151,8 @@ describe("ai gallery", () => {
     expect(merged.choices.map((item) => item.id)).toEqual([
       "core_yes",
       "core_no",
-      "core_want",
       "core_more",
+      "core_all_done",
       "snack",
       "bathroom",
       "drink",
